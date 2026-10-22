@@ -9,6 +9,7 @@ export function LoginForm() {
   const [state, formAction, pending] = useActionState(submitLogin, initialState);
   // 제출 뒤 입력칸이 비워지지 않게 값을 직접 들고 있는다. (등록 신청 버튼이 같은 이메일을 다시 써야 한다)
   const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
 
   return (
     <form action={formAction} className="flex w-full flex-col gap-4">
@@ -22,6 +23,17 @@ export function LoginForm() {
           value={email}
           onChange={(event) => setEmail(event.target.value)}
           placeholder="name@example.com"
+          className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+        />
+      </label>
+      <label className="flex flex-col gap-2 text-sm font-medium">
+        확인 코드 <span className="font-normal text-zinc-500">(담당자만)</span>
+        <input
+          name="code"
+          type="password"
+          autoComplete="off"
+          value={code}
+          onChange={(event) => setCode(event.target.value)}
           className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
         />
       </label>

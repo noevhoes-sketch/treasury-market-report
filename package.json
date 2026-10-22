@@ -9,6 +9,7 @@
     "lint": "eslint",
     "check:screens": "node --experimental-strip-types --no-warnings scripts/check-screens.mjs",
     "collect:today": "node --experimental-strip-types --no-warnings scripts/collect-today.mjs",
+    "rotate:manager-code": "node --experimental-strip-types --no-warnings scripts/rotate-manager-code.mjs",
     "seed:kr": "node --experimental-strip-types --no-warnings scripts/seed-kr-rates.mjs",
     "seed:us": "node --experimental-strip-types --no-warnings scripts/seed-us-rates.mjs",
     "check:login": "node --experimental-strip-types --no-warnings scripts/check-login-flow.mjs",

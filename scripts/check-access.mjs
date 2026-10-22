@@ -8,6 +8,7 @@ import {
   resolveAccess,
   safeNextPath,
 } from "../src/lib/auth/access.ts";
+import { generateManagerCode, verifyManagerCode } from "../src/lib/auth/manager-code.ts";
 
 let passed = 0;
 async function check(name, fn) {
@@ -101,6 +102,34 @@ await check("돌아갈 주소: 다른 사이트로 보내는 값은 첫 화면�
   assert.equal(safeNextPath("javascript:alert(1)"), "/");
   assert.equal(safeNextPath("/ok\nSet-Cookie: x"), "/");
   assert.equal(safeNextPath(undefined), "/");
+});
+await check("담당자 코드: 맞는 코드만 통과(대소문자·앞뒤 공백은 무시)", () => {
+  assert.equal(verifyManagerCode("ABCD234567", "ABCD234567"), true);
+  assert.equal(verifyManagerCode("  abcd234567 ", "ABCD234567"), true);
+  assert.equal(verifyManagerCode("ABCD234568", "ABCD234567"), false);
+  assert.equal(verifyManagerCode("ABCD23456", "ABCD234567"), false);
+  assert.equal(verifyManagerCode("ABCD2345678", "ABCD234567"), false);
+});
+await check("담당자 코드: 비었거나 이상한 입력은 거부", () => {
+  for (const bad of ["", "   ", null, undefined, 1234567890, {}, "x".repeat(500)]) {
+    assert.equal(verifyManagerCode(bad, "ABCD234567"), false);
+  }
+});
+await check("담당자 코드: 서버에 코드가 설정되지 않았으면 모두 거부(잠금을 풀지 않는다)", () => {
+  assert.equal(verifyManagerCode("", ""), false);
+  assert.equal(verifyManagerCode("undefined", undefined), false);
+  assert.equal(verifyManagerCode("null", null), false);
+  assert.equal(verifyManagerCode("  ", "  "), false);
+});
+await check("담당자 코드: 새로 만든 코드는 10글자이고 헷갈리는 글자가 없다", () => {
+  const seen = new Set();
+  for (let i = 0; i < 200; i += 1) {
+    const code = generateManagerCode();
+    assert.match(code, /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{10}$/);
+    seen.add(code);
+  }
+  assert.equal(seen.size, 200);
+  assert.equal(verifyManagerCode(generateManagerCode(), generateManagerCode()), false);
 });
 
 console.log(`\n모두 통과: ${passed}개`);
