@@ -12,10 +12,9 @@ import { INSTRUMENT_LABELS } from "@/lib/db/types";
 import { listHeldRates, listReportDates } from "@/lib/reports/queries";
 import { approveLogin, rejectLogin, releaseHold } from "./actions";
 import { PasswordForm } from "./password-form";
+import { SubmitButton } from "./submit-button";
 
 export const metadata = { title: "담당자 확인 · 국채시장 동향" };
-
-const buttonClass = "btn";
 
 // Design Ref: §1.3 담당자 확인 화면 — 로그인 신청 승인, 전일 대비 변동이 큰 값 확인 (담당자만)
 async function Review() {
@@ -53,16 +52,16 @@ async function Review() {
                     <form action={approveLogin}>
                       <input type="hidden" name="id" value={request.id} />
                       <input type="hidden" name="role" value="viewer" />
-                      <button type="submit" className={buttonClass}>열람자로 승인</button>
+                      <SubmitButton>열람자로 승인</SubmitButton>
                     </form>
                     <form action={approveLogin}>
                       <input type="hidden" name="id" value={request.id} />
                       <input type="hidden" name="role" value="manager" />
-                      <button type="submit" className={buttonClass}>담당자로 승인</button>
+                      <SubmitButton>담당자로 승인</SubmitButton>
                     </form>
                     <form action={rejectLogin}>
                       <input type="hidden" name="id" value={request.id} />
-                      <button type="submit" className={buttonClass}>거절</button>
+                      <SubmitButton>거절</SubmitButton>
                     </form>
                   </span>
                 </li>
@@ -125,7 +124,7 @@ async function Review() {
                   </span>
                   <form action={releaseHold}>
                     <input type="hidden" name="id" value={item.id} />
-                    <button type="submit" className={buttonClass}>그대로 올리기</button>
+                    <SubmitButton>그대로 올리기</SubmitButton>
                   </form>
                 </li>
               ))}
