@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:calc": "node --experimental-strip-types --no-warnings scripts/check-business-days.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-format.mjs"
+    "check:calc": "node --experimental-strip-types --no-warnings scripts/check-business-days.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-format.mjs && node --experimental-strip-types --no-warnings scripts/check-access.mjs"
   },
   "dependencies": {
     "next": "16.4.2",
