@@ -44,7 +44,7 @@ function DataCell({ cell, strong = false }: { cell: Cell; strong?: boolean }) {
   const title = cell.source && cell.asOf ? `출처: ${cell.source} · 기준일: ${cell.asOf}` : undefined;
   const emphasis = strong && cellClass(cell) === "" ? "bg-panel text-base font-bold text-brand" : "";
   return (
-    <td title={title} className={`px-4 py-3 text-right tabular-nums ${cellClass(cell)} ${emphasis}`}>
+    <td title={title} className={`whitespace-nowrap px-4 py-3 text-center tabular-nums ${cellClass(cell)} ${emphasis}`}>
       {cell.text}
       {cell.source === MANUAL_SOURCE && cell.text !== MISSING_TEXT ? (
         <span className="ml-1 rounded bg-surface px-1 align-middle text-[10px] font-normal text-muted">직접</span>
@@ -182,11 +182,11 @@ export function ReportView(props: Props) {
               <table className="w-full min-w-[40rem] border-collapse text-sm">
                 <thead className="bg-surface">
                   <tr>
-                    <th className="px-4 py-3 text-left font-bold">구분</th>
+                    <th className="whitespace-nowrap px-4 py-3 text-left font-bold">구분</th>
                     {["전년말", "전월말", "전일", "금일", "전일비", "전월말비", "전년말비"].map((name) => (
                       <th
                         key={name}
-                        className={`px-4 py-3 text-right font-bold ${name === "금일" || name === "전일비" ? "bg-brand text-white" : ""}`}
+                        className={`whitespace-nowrap px-4 py-3 text-center font-bold ${name === "금일" || name === "전일비" ? "bg-brand text-white" : ""}`}
                       >
                         {name}
                       </th>
@@ -196,7 +196,7 @@ export function ReportView(props: Props) {
                 <tbody>
                   {rows.map((row) => (
                     <tr key={row.instrument} className="border-t border-line">
-                      <th className="px-4 py-3 text-left font-bold">{INSTRUMENT_LABELS[row.instrument]}</th>
+                      <th className="whitespace-nowrap px-4 py-3 text-left font-bold">{INSTRUMENT_LABELS[row.instrument]}</th>
                       <DataCell cell={row.previousYearEnd} />
                       <DataCell cell={row.previousMonthEnd} />
                       <DataCell cell={row.previousDay} />
