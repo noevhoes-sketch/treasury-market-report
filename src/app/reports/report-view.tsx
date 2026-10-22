@@ -8,6 +8,7 @@ import {
 } from "@/lib/db/types";
 import { HELD_TEXT, MISSING_TEXT, type Cell, type TableRow } from "@/lib/calc/rates-format";
 import { reportTitle } from "@/lib/calc/business-days";
+import { isTrustedArticleUrl } from "@/lib/cause/infomax";
 
 type Props = {
   date: string;
@@ -70,6 +71,28 @@ function causeText(report: ReportRow | null, line: "kr" | "us", role: Role): str
   if (role !== "manager" && !confirmed) return "작성 중";
   if (text) return text;
   return CAUSE_STATUS_LABELS[status];
+}
+
+/** 원인 줄 옆에 붙는 안내: 담당자에게는 "초안, 담당자 확인 필요", 보이는 사람에게는 근거 기사 링크 */
+function CauseExtras({ report, line, role }: { report: ReportRow | null; line: "kr" | "us"; role: Role }) {
+  const status = report?.[line === "kr" ? "cause_status_kr" : "cause_status_us"];
+  const url = report?.[line === "kr" ? "source_url_kr" : "source_url_us"];
+  const confirmed = report?.confirmed_at != null;
+  const visible = role === "manager" || confirmed;
+  return (
+    <>
+      {role === "manager" && !confirmed && status === "draft" ? (
+        <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-xs text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          초안, 담당자 확인 필요
+        </span>
+      ) : null}
+      {visible && isTrustedArticleUrl(url) ? (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="ml-2 text-xs text-blue-700 underline dark:text-blue-300">
+          근거 기사
+        </a>
+      ) : null}
+    </>
+  );
 }
 
 export function ReportView(props: Props) {
@@ -163,15 +186,28 @@ export function ReportView(props: Props) {
           </section>
 
           <section className="flex flex-col gap-2">
-            <h2 className="text-lg font-semibold">등락 원인</h2>
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-lg font-semibold">등락 원인</h2>
+              {role === "manager" ? (
+                <Link href={`/review/${date}`} className="text-sm text-blue-700 underline dark:text-blue-300">
+                  원인 확인·확정 →
+                </Link>
+              ) : null}
+            </div>
             <dl className="flex flex-col gap-2 text-sm">
               <div>
                 <dt className="font-medium">국고채</dt>
-                <dd className="text-zinc-600 dark:text-zinc-300">{causeText(report, "kr", role)}</dd>
+                <dd className="text-zinc-600 dark:text-zinc-300">
+                  {causeText(report, "kr", role)}
+                  <CauseExtras report={report} line="kr" role={role} />
+                </dd>
               </div>
               <div>
                 <dt className="font-medium">미국 금리</dt>
-                <dd className="text-zinc-600 dark:text-zinc-300">{causeText(report, "us", role)}</dd>
+                <dd className="text-zinc-600 dark:text-zinc-300">
+                  {causeText(report, "us", role)}
+                  <CauseExtras report={report} line="us" role={role} />
+                </dd>
               </div>
             </dl>
           </section>

@@ -1,6 +1,8 @@
 {
   "crons": [
     { "path": "/api/cron/collect", "schedule": "30 7 * * 1-5" },
-    { "path": "/api/cron/collect", "schedule": "50 7 * * 1-5" }
+    { "path": "/api/cron/collect", "schedule": "50 7 * * 1-5" },
+    { "path": "/api/cron/cause", "schedule": "50 9 * * 1-5" },
+    { "path": "/api/cron/cause", "schedule": "30 10 * * 1-5" }
   ]
 }

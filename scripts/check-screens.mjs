@@ -14,6 +14,8 @@ const svc = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE
 const BASE = "http://localhost:3000";
 const TEST_DATE = "2026-10-20";
 const CAUSE = "시험용 원인 문장 ABC";
+const CONFIRMED_DATE = "2026-10-19";
+const CONFIRMED_CAUSE = "시험용 확정 문장 XYZ";
 
 class Jar {
   c = new Map();
@@ -45,6 +47,8 @@ async function login(email) {
 try {
   for (const email of Object.values(users)) await svc.auth.admin.createUser({ email, email_confirm: true });
   await svc.from("allowed_users").insert([{ email: users.manager, role: "manager" }, { email: users.viewer, role: "viewer" }]);
+  const managerRow = await svc.from("allowed_users").select("id").eq("email", users.manager).single();
+  await svc.from("reports").upsert({ report_date: CONFIRMED_DATE, table_status: "done", cause_kr: CONFIRMED_CAUSE, cause_status_kr: "draft", source_url_kr: "https://news.einfomax.co.kr/news/articleView.html?idxno=4440425", confirmed_by: managerRow.data.id, confirmed_at: new Date().toISOString() }, { onConflict: "report_date" });
   await svc.from("reports").upsert({ report_date: TEST_DATE, table_status: "done", cause_kr: CAUSE, cause_status_kr: "draft" }, { onConflict: "report_date" });
 
   // 로그인 전
@@ -80,6 +84,12 @@ try {
   ok("담당자: 확인 화면이 열린다", r.status === 200 && html.includes("담당자 확인"));
 
   // 열람자
+  r = await get(`/review/${TEST_DATE}`, manager);
+  html = await r.text();
+  ok("담당자: 원인 확인·확정 화면에 초안 문장과 근거 기사 링크가 보인다", html.includes(CAUSE) && html.includes("초안, 담당자 확인 필요"));
+  r = await get("/review/2026-13-45", manager);
+  html = await r.text();
+  ok("담당자: 이상한 날짜의 확인 화면은 없는 페이지로 처리", /NEXT_HTTP_ERROR_FALLBACK;404|could not be found/.test(html) && !html.includes("저장"));
   const viewer = await login(users.viewer);
   r = await get("/reports/2026-10-21", viewer);
   html = await r.text();
@@ -87,6 +97,12 @@ try {
   r = await get(`/reports/${TEST_DATE}`, viewer);
   html = await r.text();
   ok("열람자: 확정 전 원인 문장은 보이지 않고 '작성 중'만 보인다", !html.includes(CAUSE) && html.includes("작성 중"));
+  r = await get(`/reports/${CONFIRMED_DATE}`, viewer);
+  html = await r.text();
+  ok("열람자: 확정된 원인 문장과 근거 기사 링크가 보인다", html.includes(CONFIRMED_CAUSE) && html.includes("근거 기사") && html.includes("idxno=4440425"));
+  r = await get(`/review/${TEST_DATE}`, viewer);
+  html = await r.text();
+  ok("열람자: 원인 확인·확정 화면의 내용은 보이지 않는다(이동 신호만)", !html.includes(CAUSE) && !html.includes("저장"));
   r = await get("/review", viewer);
   html = await r.text();
   ok("열람자: 담당자 확인 화면의 내용은 보이지 않는다(이동 신호만)", !html.includes("그대로 올리기") && !html.includes("확인할 값이 없습니다") && /NEXT_REDIRECT|\/"/.test(html) || r.status >= 300);
@@ -99,6 +115,10 @@ try {
   ok("자동 실행 주소: 비밀 값 없이 부르면 거부(401)", r.status === 401, `${r.status}`);
   r = await get("/api/cron/collect", new Jar(), { headers: { authorization: "Bearer wrong-secret" } });
   ok("자동 실행 주소: 틀린 비밀 값은 거부(401)", r.status === 401, `${r.status}`);
+  r = await get("/api/cron/cause", new Jar());
+  ok("원인 자동 실행 주소: 비밀 값 없이 부르면 거부(401)", r.status === 401, `${r.status}`);
+  r = await get("/api/cron/cause", new Jar(), { headers: { authorization: "Bearer wrong-secret" } });
+  ok("원인 자동 실행 주소: 틀린 비밀 값은 거부(401)", r.status === 401, `${r.status}`);
   r = await get("/api/cron/collect", viewer, { headers: { authorization: "Bearer " } });
   ok("자동 실행 주소: 로그인한 사람이라도 비밀 값이 없으면 거부", r.status === 401, `${r.status}`);
   r = await get("/api/cron/collect", new Jar(), { headers: { authorization: `Bearer ${env.CRON_SECRET}` } });
@@ -106,6 +126,7 @@ try {
   ok("자동 실행 주소: 맞는 비밀 값이면 일하고 결과를 돌려준다", r.status === 200 && typeof body.date === "string" && ["ok", "waiting", "no-data"].includes(body.kr), `${r.status} ${body.kr ?? ""}`);
 } finally {
   await svc.from("reports").delete().eq("report_date", TEST_DATE).eq("cause_kr", CAUSE);
+  await svc.from("reports").delete().eq("report_date", CONFIRMED_DATE).eq("cause_kr", CONFIRMED_CAUSE);
   await svc.from("allowed_users").delete().in("email", Object.values(users));
   const list = await svc.auth.admin.listUsers();
   for (const u of list.data.users) if (Object.values(users).includes(u.email)) await svc.auth.admin.deleteUser(u.id);

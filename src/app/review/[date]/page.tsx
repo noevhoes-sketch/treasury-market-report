@@ -1,0 +1,102 @@
+import Link from "next/link";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { connection } from "next/server";
+import { AppHeader } from "@/app/app-header";
+import { reportTitle } from "@/lib/calc/business-days";
+import { buildReportTable } from "@/lib/calc/rates-format";
+import { pickReportInputs } from "@/lib/calc/report-table";
+import { requireManager } from "@/lib/auth/guard";
+import { isTrustedArticleUrl } from "@/lib/cause/infomax";
+import { CAUSE_STATUS_LABELS } from "@/lib/db/types";
+import { isValidDateString } from "@/lib/rates/validate";
+import { whyCannotConfirm } from "@/lib/reports/cause-store";
+import { fetchRatesForReport, fetchReportRow } from "@/lib/reports/queries";
+import { CauseForm } from "./cause-form";
+
+export const metadata = { title: "원인 확인·확정 · 국채시장 동향" };
+
+function kstDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("ko-KR", { timeZone: "Asia/Seoul", hour12: false });
+}
+
+// Design Ref: §1.3 담당자 확인 화면 `/review/날짜` — 등락 원인 문장 확인·수정·확정 (담당자만)
+async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
+  await connection();
+  const user = await requireManager();
+
+  // 주소의 날짜는 데이터베이스를 읽기 전에 검사한다(DESIGN §4.5).
+  const { date } = await params;
+  if (!isValidDateString(date)) notFound();
+
+  const [report, records] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date)]);
+  const rows = buildReportTable(pickReportInputs(records, date));
+  const confirmed = report?.confirmed_at != null;
+  const blocker = whyCannotConfirm(report);
+  const stale = report?.cause_status_kr === "stale" || report?.cause_status_us === "stale";
+
+  // 확정된 보고서의 줄은 "확정"으로, 아니면 줄별 상태(초안·숫자 바뀜·기사 대기 중 등)를 보여준다.
+  const label = (status: keyof typeof CAUSE_STATUS_LABELS | undefined) =>
+    confirmed ? "확정" : CAUSE_STATUS_LABELS[status ?? "waiting_article"];
+
+  return (
+    <>
+      <AppHeader email={user.email} role={user.role} />
+      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
+        <div>
+          <Link href="/review" className="text-sm text-zinc-500 hover:underline">
+            ← 담당자 확인
+          </Link>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight">{reportTitle(date)}</h1>
+          <p className="text-sm text-zinc-500">
+            등락 원인 문장 확인·확정 ·{" "}
+            <Link href={`/reports/${date}`} className="underline">
+              보고서 보기
+            </Link>
+          </p>
+        </div>
+
+        {stale ? (
+          <p role="status" className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            금리 숫자가 바뀌어 확정이 풀렸어요. 문장을 다시 확인하고 저장·확정해 주세요.
+          </p>
+        ) : null}
+        {confirmed ? (
+          <p role="status" className="rounded-md bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
+            확정되었습니다 ({kstDateTime(report!.confirmed_at!)}). 문장을 고쳐 저장하면 확정이 풀려요.
+          </p>
+        ) : blocker ? (
+          <p className="rounded-md bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-900">지금은 확정할 수 없어요: {blocker}</p>
+        ) : null}
+
+        <CauseForm
+          date={date}
+          kr={report?.cause_kr ?? ""}
+          us={report?.cause_us ?? ""}
+          krLabel={label(report?.cause_status_kr)}
+          usLabel={label(report?.cause_status_us)}
+          krUrl={isTrustedArticleUrl(report?.source_url_kr) ? report!.source_url_kr : null}
+          usUrl={isTrustedArticleUrl(report?.source_url_us) ? report!.source_url_us : null}
+        />
+
+        <section className="text-sm text-zinc-500">
+          <p>
+            금리 표 기준: 국고채 3년 {rows[0].today.text}
+            {rows[0].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${rows[0].changeFromPreviousDay.text})` : ""}, 미국 10년{" "}
+            {rows[3].today.text}
+            {rows[3].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${rows[3].changeFromPreviousDay.text})` : ""}.
+            문장에는 표에 있는 숫자만 쓸 수 있고, 전망·의견 표현은 쓸 수 없어요.
+          </p>
+        </section>
+      </main>
+    </>
+  );
+}
+
+export default function ReviewDatePage({ params }: { params: Promise<{ date: string }> }) {
+  return (
+    <Suspense fallback={null}>
+      <ReviewDate params={params} />
+    </Suspense>
+  );
+}

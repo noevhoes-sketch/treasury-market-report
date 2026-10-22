@@ -2,66 +2,17 @@
 // 서버에서만 쓴다(server-only). 서버 전용 키로 데이터베이스를 읽으므로 화면(브라우저) 코드에서 불러오면 빌드가 실패한다.
 import "server-only";
 
-import {
-  endOfPreviousMonth,
-  endOfPreviousYear,
-  type RateRecord,
-} from "../calc/report-table";
+import type { RateRecord } from "../calc/report-table";
 import { createServiceClient } from "../db/server";
 import type { Instrument, ReportRow } from "../db/types";
+import { fetchRatesForReportWith, minusDays } from "./rates-window";
 
-type RateDbRow = {
-  rate_date: string;
-  instrument: Instrument;
-  rate: number | string;
-  source: string;
-  as_of_date: string;
-  held: boolean;
-};
-
-function toRecord(row: RateDbRow): RateRecord {
-  return { ...row, rate: Number(row.rate) };
-}
-
-/** date에서 days일 전 날짜(달력). */
-function minusDays(date: string, days: number): string {
-  const d = new Date(`${date}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() - days);
-  return d.toISOString().slice(0, 10);
-}
-
-/**
- * 한 보고서에 필요한 금리 줄만 읽는다: 보고서 날짜 근처, 지난달 말 근처, 지난해 말 근처.
- * (한 해치를 모두 읽으면 한 번에 읽을 수 있는 줄 수 제한(1000줄)을 넘길 수 있어서 세 구간만 읽는다)
- * 구간을 14일로 잡은 이유: 긴 연휴에도 그 앞의 마지막 영업일 값이 구간 안에 들어오게 하려는 것이다.
- */
+/** 한 보고서에 필요한 금리 줄(보고서 날짜·지난달 말·지난해 말 근처). */
 export async function fetchRatesForReport(date: string): Promise<RateRecord[]> {
-  const client = createServiceClient();
-  const windows = [
-    [minusDays(date, 14), date],
-    [minusDays(endOfPreviousMonth(date), 14), endOfPreviousMonth(date)],
-    [minusDays(endOfPreviousYear(date), 14), endOfPreviousYear(date)],
-  ];
-  const results = await Promise.all(
-    windows.map(([from, to]) =>
-      client
-        .from("rates")
-        .select("rate_date, instrument, rate, source, as_of_date, held")
-        .gte("rate_date", from)
-        .lte("rate_date", to)
-        .returns<RateDbRow[]>(),
-    ),
-  );
-  const records = new Map<string, RateRecord>();
-  for (const result of results) {
-    if (result.error) throw new Error(`금리를 읽지 못했습니다: ${result.error.message}`);
-    for (const row of result.data ?? []) {
-      records.set(`${row.instrument}|${row.rate_date}`, toRecord(row));
-    }
-  }
-  return [...records.values()];
+  return fetchRatesForReportWith(createServiceClient(), date);
 }
 
+/** 보고서 한 건(없으면 null). */
 export async function fetchReportRow(date: string): Promise<ReportRow | null> {
   const { data, error } = await createServiceClient()
     .from("reports")

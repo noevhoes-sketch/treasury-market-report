@@ -48,6 +48,11 @@ check("미국: 금일은 보고서 날짜 이전 가장 최근 값(최신 마감
   assert.equal(input.today.asOf, "2026-10-21");
   assert.equal(input.previousDay.asOf, "2026-10-20");
 });
+check("미국: 같은 날짜의 미국 값은 그 보고서에 쓰지 않는다(한국 날짜 R의 보고서에는 R 이전 값)", () => {
+  const input = pickInstrumentInput([rec("us10", "2026-10-19", 5.15), rec("us10", "2026-10-20", 5.12), rec("us10", "2026-10-21", 5.13)], "2026-10-21", "us");
+  assert.equal(input.today.asOf, "2026-10-20");
+  assert.equal(input.previousDay.asOf, "2026-10-19");
+});
 check("표 만들기: 네 종목이 한꺼번에, 변동폭까지 맞게 나온다", () => {
   const records = [
     rec("kr3", "2026-10-21", 3.822), rec("kr3", "2026-10-22", 3.817), rec("kr3", "2025-12-31", 2.953), rec("kr3", "2026-09-30", 4.011),

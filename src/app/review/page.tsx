@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { AppHeader } from "@/app/app-header";
@@ -6,7 +7,7 @@ import { requireManager } from "@/lib/auth/guard";
 import { formatRate } from "@/lib/calc/rates-format";
 import { listPendingRequests } from "@/lib/db/access-requests";
 import { INSTRUMENT_LABELS } from "@/lib/db/types";
-import { listHeldRates } from "@/lib/reports/queries";
+import { listHeldRates, listReportDates } from "@/lib/reports/queries";
 import { approveLogin, rejectLogin, releaseHold } from "./actions";
 
 export const metadata = { title: "담당자 확인 · 국채시장 동향" };
@@ -17,7 +18,11 @@ const buttonClass = "rounded border border-zinc-300 px-3 py-1 dark:border-zinc-7
 async function Review() {
   await connection();
   const user = await requireManager();
-  const [requests, held] = await Promise.all([listPendingRequests(), listHeldRates()]);
+  const [requests, held, reports] = await Promise.all([
+    listPendingRequests(),
+    listHeldRates(),
+    listReportDates(10),
+  ]);
 
   return (
     <>
@@ -60,6 +65,26 @@ async function Review() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-lg font-semibold">등락 원인 확인·확정</h2>
+          <p className="mb-3 text-sm text-zinc-500">
+            날짜를 눌러 원인 초안을 확인하고, 필요하면 고쳐서 확정해 주세요. 확정해야 열람자에게 원인이 보여요.
+          </p>
+          <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {reports.map((item) => (
+              <li key={item.date}>
+                <Link
+                  href={`/review/${item.date}`}
+                  className="flex items-center justify-between px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                >
+                  <span>{reportTitle(item.date)}</span>
+                  <span className="text-zinc-500">{item.confirmed ? "확정 완료" : "확인 필요"}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section>

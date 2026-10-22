@@ -3,7 +3,8 @@
 //
 // 규칙
 //  - 국고채: 보고서 날짜의 값이 "금일"이다. 그날 값이 아직 없으면 금일은 비운다("미수집/대기 중").
-//  - 미국: 보고서 날짜 이전 가장 최근 미국 영업일 값이 "금일"이다(최신 마감일 값).
+//  - 미국: 보고서 날짜 "이전" 가장 최근 미국 영업일 값이 "금일"이다(최신 마감일 값). 미국 날짜 D의 마감은 한국 시간으로 D+1 아침이라,
+//    한국 날짜 R의 보고서를 만들 때 R일자 미국 값은 아직 없다. 나중에 그 값이 들어와도 R 보고서에는 쓰지 않는다.
 //  - 전일: 금일 값의 날짜보다 앞선 가장 최근 값. 전월말·전년말: 보고서 날짜 기준 지난달·지난해 마지막 날 이전의 가장 최근 값.
 //    휴장일 표를 따로 보지 않아도, 값이 있는 날만 골라서 영업일이 저절로 맞는다.
 
@@ -66,7 +67,7 @@ export function pickInstrumentInput(
   const today =
     market === "kr"
       ? (records.find((record) => record.rate_date === reportDate) ?? null)
-      : latest(records, reportDate, true);
+      : latest(records, reportDate, false);
   // 금일 값이 없으면 보고서 날짜를 기준으로 전일을 찾는다.
   const anchor = today?.rate_date ?? reportDate;
   return {
