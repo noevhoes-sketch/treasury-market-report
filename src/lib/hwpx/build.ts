@@ -52,8 +52,8 @@ function paragraph(text: string, charPr = 0, paraPr = 0, width = BODY_WIDTH): st
 
 // 표: 구분 칸을 넓게, 나머지 7칸은 같게 (합 48190)
 const COL_WIDTHS = [6890, 5900, 5900, 5900, 5900, 5900, 5900, 5900];
-const HEAD_HEIGHT = 4200;
-const ROW_HEIGHT = 5400;
+const HEAD_HEIGHT = 3600;
+const ROW_HEIGHT = 4600;
 // 눈에 띄게 할 열: 금일(4), 전일비(5)
 const EMPHASIS_COLS = [4, 5];
 
@@ -117,7 +117,6 @@ function section(input: HwpxInput): string {
     paragraph("□ 등락 원인", 9, 24),
     paragraph(`○ 국고채: ${input.causeKr}`, 8, 23),
     paragraph(`○ 미국 금리: ${input.causeUs}`, 8, 23),
-    paragraph("", 13, 0),
     paragraph(`※ 출처: ${input.sources}`, 13, 0),
     ...input.basisLines.map((line) => paragraph(`※ ${line}`, 13, 0)),
     paragraph(officialDate(input.date), 15, 25),
