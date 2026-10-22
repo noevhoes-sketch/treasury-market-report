@@ -39,10 +39,21 @@ function cellClass(cell: Cell): string {
   return "";
 }
 
-/** 금일·전일비 칸은 눈에 잘 띄게 연한 파랑 바탕에 굵고 크게 보인다. 보류·미수집 칸은 자기 색을 그대로 둔다. */
-function DataCell({ cell, strong = false }: { cell: Cell; strong?: boolean }) {
+/** 전일비 칸의 글자색: 상승은 빨강, 하락(△)은 파랑, 변동 없음은 검정 */
+function changeColor(text: string): string {
+  if (text.startsWith("+")) return "text-[#c62828]";
+  if (text.startsWith("△") || text.startsWith("-")) return "text-[#1d5fd1]";
+  return "text-ink";
+}
+
+/**
+ * 금일·전일비 칸은 눈에 잘 띄게 연한 파랑 바탕에 굵고 크게 보인다. 보류·미수집 칸은 자기 색을 그대로 둔다.
+ * 글자색: 금일은 검정, 전일비는 상승 빨강·하락 파랑. (kind로 어느 칸인지 알려 준다)
+ */
+function DataCell({ cell, strong = false, kind }: { cell: Cell; strong?: boolean; kind?: "today" | "change" }) {
   const title = cell.source && cell.asOf ? `출처: ${cell.source} · 기준일: ${cell.asOf}` : undefined;
-  const emphasis = strong && cellClass(cell) === "" ? "bg-panel text-base font-bold text-brand" : "";
+  const color = kind === "change" ? changeColor(cell.text) : "text-ink";
+  const emphasis = strong && cellClass(cell) === "" ? `bg-panel text-base font-bold ${color}` : "";
   return (
     <td title={title} className={`whitespace-nowrap px-4 py-3 text-center tabular-nums ${cellClass(cell)} ${emphasis}`}>
       {cell.text}
@@ -202,8 +213,8 @@ export function ReportView(props: Props) {
                       <DataCell cell={row.previousYearEnd} />
                       <DataCell cell={row.previousMonthEnd} />
                       <DataCell cell={row.previousDay} />
-                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.today) : row.today} strong />
-                      <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromPreviousDay) : row.changeFromPreviousDay)} strong />
+                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.today) : row.today} strong kind="today" />
+                      <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromPreviousDay) : row.changeFromPreviousDay)} strong kind="change" />
                       <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromMonthEnd) : row.changeFromMonthEnd)} />
                       <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromYearEnd) : row.changeFromYearEnd)} />
                     </tr>

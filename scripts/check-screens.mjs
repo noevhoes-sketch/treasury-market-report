@@ -70,6 +70,7 @@ try {
   ok("담당자: 보고서 화면에 제목·금리·변동폭이 보인다", r.status === 200 && html.includes("10/21(수) 국채시장 동향") && html.includes("3.822") && html.includes("△1.8bp"));
   ok("금리 추이 그래프(선 3개, 전월말 점선 기준)가 보인다", html.includes("국고채 금리 추이") && (html.match(/<path d=\"M/g) ?? []).length === 3 && html.includes("전월말 9/30"));
   ok("불러오는 동안 보이는 자리 표시(스켈레톤)가 화면에 함께 실려 온다", html.includes("불러오는 중입니다") && html.includes("animate-pulse"));
+  ok("전일비 글자색: 하락(10/21 전 종목 하락)은 파랑", html.includes("text-[#1d5fd1]") && !html.includes("text-[#c62828]"));
   ok("담당자: 출처와 열별 기준일이 보인다", html.includes("금융투자협회") && html.includes("미국 재무부") && html.includes("전월말 9/30"));
   ok("로그인 후 모든 화면 맨 위에도 로고가 있고 누르면 홈(/)으로 간다", /<header[^>]*sticky[\s\S]*?<a[^>]*href="\/"[^>]*>[\s\S]*?logo\.svg/.test(html));
   r = await get("/reports/2026-13-45", manager);
