@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildReportTable } from "../calc/rates-format.ts";
 import { pickReportInputs } from "../calc/report-table.ts";
-import { fetchRatesForReportWith } from "../reports/rates-window.ts";
+import { fetchKrHolidaySetWith, fetchRatesForReportWith } from "../reports/rates-window.ts";
 import { storeGeneratedDraft, type GeneratedLine } from "../reports/cause-store.ts";
 import type { ReportRow } from "../db/types.ts";
 import { requestDraft } from "./draft.ts";
@@ -72,7 +72,7 @@ export async function generateCauseDraft(
 
   // 표 숫자: 문장 검사와 AI 요청에 쓴다. 국고채 값이 모두 모이기 전에는 초안을 만들지 않는다.
   const records = await fetchRatesForReportWith(client, date);
-  const rows = buildReportTable(pickReportInputs(records, date));
+  const rows = buildReportTable(pickReportInputs(records, date, await fetchKrHolidaySetWith(client, date)));
   if (rows.some((row) => row.instrument.startsWith("kr") && row.today.text === "미수집")) {
     return { date, status: "table-incomplete" };
   }

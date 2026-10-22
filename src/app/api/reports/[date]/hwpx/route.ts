@@ -5,7 +5,7 @@ import { buildReportTable, type TableRow } from "@/lib/calc/rates-format";
 import { pickReportInputs } from "@/lib/calc/report-table";
 import { buildHwpx } from "@/lib/hwpx/build";
 import { isValidDateString } from "@/lib/rates/validate";
-import { fetchRatesForReport, fetchReportRow, isKrHoliday } from "@/lib/reports/queries";
+import { fetchKrHolidaySet, fetchRatesForReport, fetchReportRow, isKrHoliday } from "@/lib/reports/queries";
 
 function shortDate(date: string | null | undefined): string {
   if (!date) return "-";
@@ -31,12 +31,12 @@ export async function GET(_request: Request, { params }: { params: Promise<{ dat
   if (!isValidDateString(date)) return new Response("날짜가 올바르지 않습니다.", { status: 404 });
   if (await isKrHoliday(date)) return new Response("휴장일에는 보고서가 없습니다.", { status: 404 });
 
-  const [report, records] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date)]);
+  const [report, records, krHolidays] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date), fetchKrHolidaySet(date)]);
   if (!report || report.confirmed_at == null) {
     return new Response("담당자가 확정한 보고서만 내려받을 수 있습니다.", { status: 409 });
   }
 
-  const rows = buildReportTable(pickReportInputs(records, date));
+  const rows = buildReportTable(pickReportInputs(records, date, krHolidays));
   const names = new Set<string>();
   for (const row of rows) {
     for (const cell of [row.today, row.previousDay, row.previousMonthEnd, row.previousYearEnd]) {

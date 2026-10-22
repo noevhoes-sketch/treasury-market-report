@@ -6,9 +6,19 @@
 //  - 미국: 보고서 날짜 "이전" 가장 최근 미국 영업일 값이 "금일"이다(최신 마감일 값). 미국 날짜 D의 마감은 한국 시간으로 D+1 아침이라,
 //    한국 날짜 R의 보고서를 만들 때 R일자 미국 값은 아직 없다. 나중에 그 값이 들어와도 R 보고서에는 쓰지 않는다.
 //  - 전일: 금일 값의 날짜보다 앞선 가장 최근 값. 전월말·전년말: 보고서 날짜 기준 지난달·지난해 마지막 날 이전의 가장 최근 값.
-//    휴장일 표를 따로 보지 않아도, 값이 있는 날만 골라서 영업일이 저절로 맞는다.
+//    휴장일 표를 따로 보지 않아도, 값이 있는 날만 골라서 영업일이 저절로 맞는다. (한국 휴장일 표를 넘기지 않았을 때의 옛 방식)
+//  - 국고채에 한국 휴장일 표(krHolidays)를 넘기면 엄격하게 계산한다(CHECK.md 22번, PRD 5번 "못 받은 값은 추정하지 않고 미수집"):
+//    전일은 직전 영업일, 전월말·전년말은 지난달·지난해의 마지막 영업일 "그날"의 값만 쓴다.
+//    그 영업일 값이 없으면 앞선 날의 값으로 대신하지 않고 비워서 "미수집"이 되게 한다.
+//    (미국은 휴장일 표가 자료의 빈 날로만 만들어져 값이 빠진 날과 구분되지 않으므로, 옛 방식을 그대로 쓴다)
 
 import type { Instrument } from "../db/types";
+import {
+  lastBusinessDayOfPreviousMonth,
+  lastBusinessDayOfPreviousYear,
+  previousBusinessDay,
+  type HolidaySet,
+} from "./business-days.ts";
 import type { InstrumentInput, RateInput } from "./rates-format";
 
 /** 표를 만들 때 필요한 rates 한 줄. */
@@ -63,7 +73,18 @@ export function pickInstrumentInput(
   records: readonly RateRecord[],
   reportDate: string,
   market: "kr" | "us",
+  krHolidays?: HolidaySet,
 ): InstrumentInput {
+  if (market === "kr" && krHolidays) {
+    // 엄격한 계산: 기준이 되는 영업일 "그날"의 값만 쓰고, 없으면 비운다.
+    const on = (date: string) => toInput(records.find((record) => record.rate_date === date) ?? null);
+    return {
+      today: on(reportDate),
+      previousDay: on(previousBusinessDay(reportDate, krHolidays)),
+      previousMonthEnd: on(lastBusinessDayOfPreviousMonth(reportDate, krHolidays)),
+      previousYearEnd: on(lastBusinessDayOfPreviousYear(reportDate, krHolidays)),
+    };
+  }
   const today =
     market === "kr"
       ? (records.find((record) => record.rate_date === reportDate) ?? null)
@@ -89,6 +110,7 @@ const MARKET_OF: Record<Instrument, "kr" | "us"> = {
 export function pickReportInputs(
   records: readonly RateRecord[],
   reportDate: string,
+  krHolidays?: HolidaySet,
 ): Partial<Record<Instrument, InstrumentInput>> {
   const result: Partial<Record<Instrument, InstrumentInput>> = {};
   for (const instrument of Object.keys(MARKET_OF) as Instrument[]) {
@@ -96,6 +118,7 @@ export function pickReportInputs(
       records.filter((record) => record.instrument === instrument),
       reportDate,
       MARKET_OF[instrument],
+      krHolidays,
     );
   }
   return result;

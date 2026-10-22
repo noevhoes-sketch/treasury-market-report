@@ -11,7 +11,7 @@ import { isTrustedArticleUrl } from "@/lib/cause/infomax";
 import { CAUSE_STATUS_LABELS, MANUAL_SOURCE } from "@/lib/db/types";
 import { isValidDateString } from "@/lib/rates/validate";
 import { whyCannotConfirm } from "@/lib/reports/cause-store";
-import { fetchKrHolidaysAround, fetchRatesForReport, fetchReportRow } from "@/lib/reports/queries";
+import { fetchKrHolidaySet, fetchKrHolidaysAround, fetchRatesForReport, fetchReportRow } from "@/lib/reports/queries";
 import { CauseForm } from "./cause-form";
 import { RatesForm } from "./rates-form";
 
@@ -30,10 +30,10 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
   const { date } = await params;
   if (!isValidDateString(date)) notFound();
 
-  const [report, records, holidayRows] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date), fetchKrHolidaysAround(date)]);
+  const [report, records, holidayRows, krHolidays] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date), fetchKrHolidaysAround(date), fetchKrHolidaySet(date)]);
   // 직접 입력은 영업일(오늘까지)에만 받고, 이미 자동으로 수집된 국고채 칸은 잠근다.
   const canInput = date <= todayInKorea() && isBusinessDay(date, toHolidaySet(holidayRows, "kr"));
-  const rows = buildReportTable(pickReportInputs(records, date));
+  const rows = buildReportTable(pickReportInputs(records, date, krHolidays));
   const confirmed = report?.confirmed_at != null;
   const autoFilled = (index: number) => rows[index].today.text !== MISSING_TEXT && rows[index].today.source !== MANUAL_SOURCE;
   const locked = { kr3: autoFilled(0), kr10: autoFilled(1), kr30: autoFilled(2) };

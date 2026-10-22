@@ -42,6 +42,49 @@ check("전월말·전년말: 기준 날짜 이전 가장 최근 값(휴장이면
   const holiday = pickInstrumentInput(records.filter((r) => r.rate_date !== "2026-09-30"), "2026-10-22", "kr");
   assert.equal(holiday.previousMonthEnd.asOf, "2026-09-29");
 });
+const HOL = new Set(["2026-10-09"]); // 한글날(금) 휴장
+check("엄격한 계산(국고채): 전일이 직전 영업일 그날 값이면 그 값을 쓴다", () => {
+  const input = pickInstrumentInput([rec("kr3", "2026-10-20", 3.84), rec("kr3", "2026-10-21", 3.822)], "2026-10-21", "kr", HOL);
+  assert.equal(input.previousDay.asOf, "2026-10-20");
+});
+check("엄격한 계산(국고채): 전일 영업일 값이 빠졌으면 앞선 날 값으로 대신하지 않고 미수집(null)", () => {
+  const input = pickInstrumentInput([rec("kr3", "2026-10-19", 3.877), rec("kr3", "2026-10-21", 3.822)], "2026-10-21", "kr", HOL);
+  assert.equal(input.previousDay, null);
+  assert.equal(input.today.rate, 3.822);
+});
+check("엄격한 계산(국고채): 휴장일·주말은 건너뛴 영업일을 찾는다(월요일→금요일, 한글날 다음 월요일→목요일)", () => {
+  assert.equal(pickInstrumentInput([rec("kr3", "2026-10-16", 3.9), rec("kr3", "2026-10-19", 3.8)], "2026-10-19", "kr", HOL).previousDay.asOf, "2026-10-16");
+  assert.equal(pickInstrumentInput([rec("kr3", "2026-10-08", 3.9), rec("kr3", "2026-10-12", 3.8)], "2026-10-12", "kr", HOL).previousDay.asOf, "2026-10-08");
+});
+check("엄격한 계산(국고채): 금일 값이 아직 없어도 전일은 직전 영업일의 값", () => {
+  const input = pickInstrumentInput([rec("kr3", "2026-10-21", 3.822)], "2026-10-22", "kr", HOL);
+  assert.equal(input.today, null);
+  assert.equal(input.previousDay.asOf, "2026-10-21");
+});
+check("엄격한 계산(국고채): 전월말·전년말은 마지막 영업일 그날 값만(빠졌으면 미수집)", () => {
+  const all = [rec("kr3", "2025-12-30", 2.95), rec("kr3", "2025-12-31", 2.953), rec("kr3", "2026-09-29", 4.0), rec("kr3", "2026-09-30", 4.011), rec("kr3", "2026-10-22", 3.8)];
+  const full = pickInstrumentInput(all, "2026-10-22", "kr", HOL);
+  assert.equal(full.previousMonthEnd.asOf, "2026-09-30");
+  assert.equal(full.previousYearEnd.asOf, "2025-12-31");
+  const missing = pickInstrumentInput(all.filter((r) => r.rate_date !== "2026-09-30" && r.rate_date !== "2025-12-31"), "2026-10-22", "kr", HOL);
+  assert.equal(missing.previousMonthEnd, null);
+  assert.equal(missing.previousYearEnd, null);
+  // 마지막 날이 휴장이면 그 앞 영업일이 기준: 9/30이 휴장이면 9/29
+  const holiday = pickInstrumentInput(all.filter((r) => r.rate_date !== "2026-09-30"), "2026-10-22", "kr", new Set(["2026-09-30"]));
+  assert.equal(holiday.previousMonthEnd.asOf, "2026-09-29");
+});
+check("엄격한 계산: 미국은 옛 방식 그대로(휴장일 표가 자료의 빈 날로 만들어지기 때문)", () => {
+  const input = pickInstrumentInput([rec("us10", "2026-10-19", 5.15), rec("us10", "2026-10-21", 5.13)], "2026-10-22", "us", HOL);
+  assert.equal(input.today.asOf, "2026-10-21");
+  assert.equal(input.previousDay.asOf, "2026-10-19");
+});
+check("표 만들기: 전일 값이 빠지면 전일·전일비가 미수집으로 나온다", () => {
+  const rows = buildReportTable(pickReportInputs([rec("kr3", "2026-10-19", 3.877), rec("kr3", "2026-10-21", 3.822)], "2026-10-21", HOL));
+  const kr3 = rows.find((row) => row.instrument === "kr3");
+  assert.equal(kr3.previousDay.text, "미수집");
+  assert.equal(kr3.changeFromPreviousDay.text, "미수집");
+  assert.equal(kr3.today.text, "3.822");
+});
 check("미국: 금일은 보고서 날짜 이전 가장 최근 값(최신 마감일), 기준일이 그대로 보인다", () => {
   const input = pickInstrumentInput([rec("us10", "2026-10-20", 5.12), rec("us10", "2026-10-21", 5.13)], "2026-10-22", "us");
   assert.equal(input.today.rate, 5.13);

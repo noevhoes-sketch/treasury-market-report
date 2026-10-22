@@ -16,6 +16,7 @@ import {
   fetchKrHolidaysAround,
   fetchRatesForReport,
   fetchReportRow,
+  fetchKrHolidaySet,
   fetchTrendRecords,
 } from "@/lib/reports/queries";
 import { buildTrend } from "@/lib/reports/trend";
@@ -30,14 +31,15 @@ async function Report({ params }: { params: Promise<{ date: string }> }) {
   const { date } = await params;
   if (!isValidDateString(date)) notFound();
 
-  const [records, report, holidayRows, trendRecords] = await Promise.all([
+  const [records, report, holidayRows, trendRecords, krHolidays] = await Promise.all([
     fetchRatesForReport(date),
     fetchReportRow(date),
     fetchKrHolidaysAround(date),
     fetchTrendRecords(date),
+    fetchKrHolidaySet(date),
   ]);
   const holidays = toHolidaySet(holidayRows, "kr");
-  const rows = buildReportTable(pickReportInputs(records, date));
+  const rows = buildReportTable(pickReportInputs(records, date, krHolidays));
   const hasHeld = records.some(
     (record) => record.held && (record.rate_date === date || record.instrument === "us10"),
   );

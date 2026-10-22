@@ -9,7 +9,7 @@ import { requireManager } from "@/lib/auth/guard";
 import { createServiceClient } from "@/lib/db/server";
 import { isValidDateString } from "@/lib/rates/validate";
 import { confirmReport, saveManagerCauses } from "@/lib/reports/cause-store";
-import { fetchRatesForReport } from "@/lib/reports/queries";
+import { fetchKrHolidaySet, fetchRatesForReport } from "@/lib/reports/queries";
 
 export type CauseFormState = { kind: "idle" | "ok" | "error"; message: string | null };
 
@@ -29,7 +29,7 @@ export async function submitCauses(
   const intent = formData.get("intent") === "confirm" ? "confirm" : "save";
 
   try {
-    const rows = buildReportTable(pickReportInputs(await fetchRatesForReport(date), date));
+    const rows = buildReportTable(pickReportInputs(await fetchRatesForReport(date), date, await fetchKrHolidaySet(date)));
     const client = createServiceClient();
 
     // 화면에 보이는 문장이 그대로 저장·확정되도록, 확정할 때도 먼저 저장한다.

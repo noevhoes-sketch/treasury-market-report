@@ -14,6 +14,22 @@ type RateDbRow = {
   held: boolean;
 };
 
+/**
+ * 한국 휴장일 모음(전년말 근처부터 보고서 날짜까지). 전일·전월말·전년말의 "마지막 영업일"을 정확히 찾는 데 쓴다.
+ * 기간이 한 해 남짓이라 한 번에 읽어도 줄 수 제한(1000줄)에 걸리지 않는다.
+ */
+export async function fetchKrHolidaySetWith(client: SupabaseClient, date: string): Promise<Set<string>> {
+  const { data, error } = await client
+    .from("holidays")
+    .select("holiday_date")
+    .eq("market", "kr")
+    .gte("holiday_date", minusDays(endOfPreviousYear(date), 14))
+    .lte("holiday_date", date)
+    .returns<{ holiday_date: string }[]>();
+  if (error) throw new Error(`휴장일을 읽지 못했습니다: ${error.message}`);
+  return new Set((data ?? []).map((row) => row.holiday_date));
+}
+
 /** date에서 days일 전 날짜(달력). */
 export function minusDays(date: string, days: number): string {
   const d = new Date(`${date}T00:00:00Z`);

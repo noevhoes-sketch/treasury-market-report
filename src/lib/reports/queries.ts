@@ -5,7 +5,7 @@ import "server-only";
 import type { RateRecord } from "../calc/report-table";
 import { createServiceClient } from "../db/server";
 import type { Instrument, ReportRow } from "../db/types";
-import { fetchRatesForReportWith, minusDays } from "./rates-window";
+import { fetchKrHolidaySetWith, fetchRatesForReportWith, minusDays } from "./rates-window";
 import { TREND_DAYS, TREND_INSTRUMENTS, type TrendRecord } from "./trend";
 
 /** 한 보고서에 필요한 금리 줄(보고서 날짜·지난달 말·지난해 말 근처). */
@@ -25,6 +25,11 @@ export async function fetchTrendRecords(date: string): Promise<TrendRecord[]> {
     .returns<TrendRecord[]>();
   if (error) throw new Error(`금리 추이를 읽지 못했습니다: ${error.message}`);
   return data ?? [];
+}
+
+/** 표 계산용 한국 휴장일 모음(전년말 근처 ~ 보고서 날짜). */
+export async function fetchKrHolidaySet(date: string): Promise<Set<string>> {
+  return fetchKrHolidaySetWith(createServiceClient(), date);
 }
 
 /** 보고서 한 건(없으면 null). */
