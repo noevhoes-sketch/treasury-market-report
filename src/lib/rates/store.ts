@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Instrument } from "../db/types";
+import { KOFIA_SOURCE_NAME, type KofiaYield } from "./kofia.ts";
 import { US_SOURCE_NAME, type UsTenYearRow } from "./ustreasury.ts";
 
 export type RateUpsert = {
@@ -23,6 +24,35 @@ export function usRowsToRates(rows: readonly UsTenYearRow[]): RateUpsert[] {
     source: US_SOURCE_NAME,
     as_of_date: row.date,
   }));
+}
+
+/** 금투협 하루치(검증을 통과한 값)를 rates 한 줄 모양으로 바꾼다. 날짜는 조회한 날짜 그대로다. */
+export function kofiaYieldsToRates(
+  date: string,
+  yields: readonly KofiaYield[],
+): RateUpsert[] {
+  return yields.map((item) => ({
+    rate_date: date,
+    instrument: item.instrument,
+    rate: item.rate,
+    source: KOFIA_SOURCE_NAME,
+    as_of_date: date,
+  }));
+}
+
+export type HolidayUpsert = { market: "kr" | "us"; holiday_date: string; name: string };
+
+/** holidays에 저장한다. 이미 있는 날은 이름만 덮어쓴다. */
+export async function upsertHolidays(
+  client: SupabaseClient,
+  holidays: readonly HolidayUpsert[],
+): Promise<number> {
+  if (holidays.length === 0) return 0;
+  const { error } = await client
+    .from("holidays")
+    .upsert(holidays as HolidayUpsert[], { onConflict: "market,holiday_date" });
+  if (error) throw new Error(`휴장일을 저장하지 못했습니다: ${error.message}`);
+  return holidays.length;
 }
 
 /** rates에 저장한다. 이미 있는 줄은 새 값으로 덮어쓴다. 저장한 줄 수를 돌려준다. */

@@ -137,7 +137,8 @@ await check("수집: 연도별로 받아 저장하고 가장 최근 날짜를 �
   assert.equal(result.saved, 6);
   assert.equal(result.skipped, 10);
   assert.equal(result.latestDate, "2026-10-21");
-  assert.equal(client.calls.length, 2);
+  assert.equal(client.calls.filter((c) => c.table === "rates").length, 2);
+  assert.equal(result.holidays, 1); // 10/19는 자료가 없는 평일이라 미국 휴장일로 기록
 });
 
 console.log(`\n모두 통과: ${passed}개`);
