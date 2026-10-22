@@ -93,6 +93,7 @@ await check("저장 모양: 날짜·출처·기준일이 재무부 자료 그대
     rate: 5.13,
     source: "미국 재무부",
     as_of_date: "2026-10-21",
+    is_manual: false,
   });
 });
 

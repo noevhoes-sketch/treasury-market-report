@@ -173,12 +173,12 @@ await check("AI 요청: 키가 없거나 답이 JSON이 아니면 오류", async
 
 // ── 저장·확정 ──
 function fakeDb(initialReport) {
-  const state = { report: initialReport, upserts: [], updates: [] };
+  const state = { report: initialReport, upserts: [], updates: [], tableUpserts: [] };
   const client = {
     from() {
       return {
-        select() { return { eq() { return { maybeSingle: async () => ({ data: state.report, error: null }) }; } }; },
-        upsert(values) { state.upserts.push(values); state.report = { ...(state.report ?? {}), ...values }; return Promise.resolve({ error: null }); },
+        select() { return { eq() { return { maybeSingle: async () => ({ data: state.report, error: null }), in: async () => ({ data: [{ instrument: "kr3" }, { instrument: "kr10" }, { instrument: "kr30" }], error: null }) }; } }; },
+        upsert(values) { if (Object.keys(values).join() === "report_date,table_status") { state.tableUpserts.push(values); state.report = { ...(state.report ?? {}), ...values }; return Promise.resolve({ error: null }); } state.upserts.push(values); state.report = { ...(state.report ?? {}), ...values }; return Promise.resolve({ error: null }); },
         update(values) { state.updates.push(values); state.report = { ...state.report, ...values }; return { eq() { return { select: async () => ({ data: [{ report_date: "x" }], error: null }) }; } }; },
       };
     },

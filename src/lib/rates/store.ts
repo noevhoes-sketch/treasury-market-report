@@ -13,6 +13,8 @@ export type RateUpsert = {
   rate: number;
   source: string;
   as_of_date: string;
+  /** 자동 수집한 값은 항상 false. 담당자가 직접 넣은 값 위에 쓰면 DB가 기존 줄을 그대로 둔다. */
+  is_manual: false;
 };
 
 /** 미국 10년 자료를 rates 한 줄 모양으로 바꾼다. 날짜는 재무부 자료의 날짜 그대로 쓴다. */
@@ -23,6 +25,7 @@ export function usRowsToRates(rows: readonly UsTenYearRow[]): RateUpsert[] {
     rate: row.rate,
     source: US_SOURCE_NAME,
     as_of_date: row.date,
+    is_manual: false,
   }));
 }
 
@@ -37,6 +40,7 @@ export function kofiaYieldsToRates(
     rate: item.rate,
     source: KOFIA_SOURCE_NAME,
     as_of_date: date,
+    is_manual: false,
   }));
 }
 

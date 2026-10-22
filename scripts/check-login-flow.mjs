@@ -11,6 +11,7 @@ const loc = (r) => r.headers.get("location");
 const ok = (name, cond, extra="") => console.log(`${cond?"✅":"❌"} ${name}${extra?" — "+extra:""}`);
 
 const users = {manager:"e2e-manager@example.com", stranger:"e2e-stranger@example.com"};
+try {
 for (const e of Object.values(users)) { const r = await svc.auth.admin.createUser({email:e,email_confirm:true}); if (r.error && !/already/i.test(r.error.message)) console.log("createUser 오류", r.error.message); }
 await svc.from("allowed_users").insert({email:users.manager, role:"manager"});
 
@@ -64,8 +65,10 @@ jar = new Jar();
 r = await get(`/auth/confirm?token_hash=${await link(users.manager)}&type=email&next=//evil.com`, jar);
 ok("다른 사이트로 보내는 next는 무시하고 우리 첫 화면으로", new URL(loc(r),BASE).origin===BASE && !loc(r).includes("evil"), loc(r));
 
-// 정리
-await svc.from("allowed_users").delete().eq("email", users.manager);
-const list = await svc.auth.admin.listUsers(); for (const u of list.data.users) if (Object.values(users).includes(u.email)) await svc.auth.admin.deleteUser(u.id);
+} finally {
+// 정리: 중간에 오류가 나도 반드시 실행한다(시험용 담당자 계정이 남으면 누구나 담당자로 로그인할 수 있게 되므로)
+await svc.from("allowed_users").delete().in("email", [...Object.values(users), "e2e-pending@example.com", "e2e-rejected@example.com"]);
+const list = await svc.auth.admin.listUsers(); for (const u of list.data.users) if (Object.values(users).includes(u.email) || /^e2e-(pending|rejected)@/.test(u.email)) await svc.auth.admin.deleteUser(u.id);
 const left = await svc.from("allowed_users").select("id"); const after = (await svc.auth.admin.listUsers()).data.users.length;
 console.log(`정리: 허용 목록 ${left.data.length}행, 로그인 계정 ${after}개`);
+}

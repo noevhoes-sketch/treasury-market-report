@@ -4,9 +4,9 @@ import { saveManualRates } from "../src/lib/rates/manual.ts";
 
 let failed = 0;
 const ok = (name, cond) => { console.log(`${cond ? "✅" : "❌"} ${name}`); if (!cond) failed++; };
-function fake() {
+function fake(existing = []) {
   const calls = [];
-  return { calls, from: () => ({ upsert: async (rows) => { calls.push(rows); return { error: null }; } }) };
+  return { calls, from: () => ({ select: () => ({ eq: () => ({ in: async () => ({ data: existing.map((instrument) => ({ instrument })), error: null }) }) }), upsert: async (rows) => { calls.push(rows); return { error: null }; } }) };
 }
 
 let c = fake();
@@ -39,4 +39,13 @@ const rows = c.calls[0] ?? [];
 ok("올바르면 저장: 2줄", r.ok && r.saved === 2 && rows.length === 2);
 ok("출처는 '담당자 직접 입력', 직접 입력 표시, 보류 아님", rows.every((x) => x.source === "담당자 직접 입력" && x.is_manual === true && x.held === false));
 ok("국고채는 보고서 날짜, 미국은 입력한 기준일", rows.find((x) => x.instrument === "kr3")?.rate_date === "2026-10-21" && rows.find((x) => x.instrument === "us10")?.rate_date === "2026-10-20");
+c = fake(["kr3", "kr10", "kr30"]);
+r = await saveManualRates(c, { date: "2026-10-21", values: { kr3: "3.822" } });
+ok("직접 입력으로 국고채 3개가 모이면 표 상태를 완료로 올린다", r.ok && c.calls.some((x) => !Array.isArray(x) && x.table_status === "done"));
+c = fake(["kr3"]);
+r = await saveManualRates(c, { date: "2026-10-21", values: { kr3: "3.822" } });
+ok("3개가 안 모였으면 완료로 올리지 않는다", r.ok && !c.calls.some((x) => !Array.isArray(x) && x.table_status === "done"));
+c = fake(["kr3", "kr10", "kr30"]);
+r = await saveManualRates(c, { date: "2026-10-21", values: { us10: "4.10" }, usDate: "2026-10-20" });
+ok("미국 값만 넣으면 표 상태는 건드리지 않는다", r.ok && c.calls.length === 1);
 process.exit(failed ? 1 : 0);

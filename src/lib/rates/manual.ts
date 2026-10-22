@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MANUAL_SOURCE, type Instrument } from "../db/types.ts";
+import { syncTableStatus } from "../reports/table-status.ts";
 import { isValidDateString, parseRateText } from "./validate.ts";
 
 export type ManualInput = {
@@ -83,5 +84,7 @@ export async function saveManualRates(client: SupabaseClient, input: ManualInput
 
   const { error } = await client.from("rates").upsert(rows, { onConflict: "rate_date,instrument" });
   if (error) throw new Error(`직접 입력한 금리를 저장하지 못했습니다: ${error.message}`);
+  // 국고채 3개가 모두 모였으면 표 상태를 "완료"로 올려 직접 입력만으로도 확정할 수 있게 한다.
+  if (rows.some((row) => row.instrument !== "us10")) await syncTableStatus(client, input.date);
   return { ok: true, saved: rows.length };
 }

@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CauseStatus, ReportRow } from "../db/types.ts";
 import { validateCause, type CauseLine } from "../cause/validate.ts";
 import type { TableRow } from "../calc/rates-format.ts";
+import { syncTableStatus } from "./table-status.ts";
 
 /** AI가 만든 한 줄의 결과: 초안이 통과했거나, 근거가 없어 비웠다. */
 export type GeneratedLine = { text: string; url: string } | null;
@@ -61,6 +62,9 @@ export async function saveManagerCauses(
     clean[line] = check.text;
   }
 
+  // 보고서 행이 새로 생겨도 표 상태가 "대기"로 남지 않게, 저장된 금리 기준으로 맞춘다.
+  await syncTableStatus(client, date);
+
   const status = (line: CauseLine): CauseStatus => (clean[line] ? "draft" : "no_source");
   const { error } = await client.from("reports").upsert(
     {
@@ -102,6 +106,7 @@ export async function confirmReport(
   date: string,
   userId: number,
 ): Promise<SaveResult> {
+  await syncTableStatus(client, date);
   const { data, error } = await client
     .from("reports")
     .select("table_status, cause_status_kr, cause_status_us, cause_kr, cause_us")

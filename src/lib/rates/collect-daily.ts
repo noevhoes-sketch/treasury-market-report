@@ -7,6 +7,7 @@ import { flagOutliers } from "./flag.ts";
 import { fetchKofiaDay, type KofiaDayStatus } from "./kofia.ts";
 import { kofiaYieldsToRates, upsertRates, usRowsToRates } from "./store.ts";
 import { fetchTreasuryTenYear } from "./ustreasury.ts";
+import { syncTableStatus } from "../reports/table-status.ts";
 
 export type CollectDailyResult = {
   date: string;
@@ -48,23 +49,8 @@ export async function collectDaily(
     us = { error: error instanceof Error ? error.message : "미국 자료를 받지 못했습니다." };
   }
 
-  // 3) 보고서 한 건과 금리 표 상태. 한 번 완료된 표를 대기로 되돌리지 않는다.
-  const complete = kofia.yields.length === 3;
-  const tableStatus = complete ? "done" : "waiting";
-  if (complete) {
-    const { error } = await client
-      .from("reports")
-      .upsert({ report_date: today, table_status: "done" }, { onConflict: "report_date" });
-    if (error) throw new Error(`보고서 상태를 저장하지 못했습니다: ${error.message}`);
-  } else {
-    const { error } = await client
-      .from("reports")
-      .upsert(
-        { report_date: today, table_status: "waiting" },
-        { onConflict: "report_date", ignoreDuplicates: true },
-      );
-    if (error) throw new Error(`보고서를 만들지 못했습니다: ${error.message}`);
-  }
+  // 3) 보고서 한 건과 금리 표 상태. 저장된 국고채 값이 3개 모두 있으면(직접 입력한 값 포함) 완료, 완료된 표를 대기로 되돌리지 않는다.
+  const tableStatus = await syncTableStatus(client, today);
 
   return {
     date: today,
