@@ -14,10 +14,10 @@ export function AppHeader({ email, role }: { email: string; role: Role }) {
           <SiteLogo />
           <nav aria-label="주요 메뉴" className="flex items-center gap-1">
             <Link href="/" className={navLink}>
-              오늘 보고서
+              금일 동향
             </Link>
             <Link href="/reports" className={navLink}>
-              지난 보고서
+              일자별 동향
             </Link>
             {role === "manager" ? (
               <Link href="/review" className={navLink}>

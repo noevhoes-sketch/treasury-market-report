@@ -7,9 +7,9 @@ import { reportTitle } from "@/lib/calc/business-days";
 import { requireUser } from "@/lib/auth/guard";
 import { listReportDates } from "@/lib/reports/queries";
 
-export const metadata = { title: "지난 보고서 · 국채시장 동향" };
+export const metadata = { title: "일자별 동향 · 국채시장 동향" };
 
-// Design Ref: §1.4 지난 보고서 목록 — 날짜 내림차순, 줄마다 제목과 상태
+// Design Ref: §1.4 일자별 동향 목록 — 날짜 내림차순, 줄마다 제목과 상태
 async function List() {
   await connection();
   const user = await requireUser();
@@ -19,7 +19,7 @@ async function List() {
     <>
       <AppHeader email={user.email} role={user.role} />
       <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
-        <h1 className="mb-5 text-3xl font-bold tracking-tight">지난 보고서</h1>
+        <h1 className="mb-5 text-3xl font-bold tracking-tight">일자별 동향</h1>
         {items.length === 0 ? (
           <p className="panel text-sm">아직 보고서가 없습니다.</p>
         ) : (

@@ -29,7 +29,7 @@ type Props = {
   trend: TrendPoint[];
 };
 
-/** 오늘 보고서에서 값이 아직 올라오지 않은 칸의 표시(어제 이전 날짜의 빈 칸은 "미수집") */
+/** 금일 동향에서 값이 아직 올라오지 않은 칸의 표시(어제 이전 날짜의 빈 칸은 "미수집") */
 const WAITING_TEXT = "대기 중";
 
 function cellClass(cell: Cell): string {

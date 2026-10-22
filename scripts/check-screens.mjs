@@ -84,7 +84,8 @@ try {
   ok("휴장일(토요일)은 보고서 없음 안내", r.status === 200 && html.includes("휴장일이라 보고서가 없습니다"));
   r = await get("/reports", manager);
   html = await r.text();
-  ok("담당자: 지난 보고서 목록이 열린다", r.status === 200 && html.includes("국채시장 동향") && html.includes("10/21(수)"));
+  ok("맨 위 메뉴 이름: 금일 동향 · 일자별 동향", html.includes("금일 동향") && html.includes("일자별 동향") && !html.includes("오늘 보고서") && !html.includes("지난 보고서"));
+  ok("담당자: 일자별 동향 목록이 열린다", r.status === 200 && html.includes("국채시장 동향") && html.includes("10/21(수)"));
   r = await get(`/reports/${TEST_DATE}`, manager);
   html = await r.text();
   ok("담당자: 확정 전 원인 초안이 보인다", html.includes(CAUSE));

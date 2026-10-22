@@ -73,7 +73,7 @@ export type ReportListItem = {
   confirmed: boolean;
 };
 
-/** 지난 보고서 목록: 국고채 값이 있는 날짜를 최근 순으로. */
+/** 일자별 동향 목록: 국고채 값이 있는 날짜를 최근 순으로. */
 export async function listReportDates(limit = 60): Promise<ReportListItem[]> {
   const client = createServiceClient();
   const rates = await client
