@@ -7,9 +7,11 @@ import { reportTitle } from "@/lib/calc/business-days";
 import { requireManager } from "@/lib/auth/guard";
 import { formatRate } from "@/lib/calc/rates-format";
 import { listPendingRequests } from "@/lib/db/access-requests";
+import { listApprovedUsers } from "@/lib/db/auth-users";
 import { INSTRUMENT_LABELS } from "@/lib/db/types";
 import { listHeldRates, listReportDates } from "@/lib/reports/queries";
 import { approveLogin, rejectLogin, releaseHold } from "./actions";
+import { PasswordForm } from "./password-form";
 
 export const metadata = { title: "담당자 확인 · 국채시장 동향" };
 
@@ -19,10 +21,11 @@ const buttonClass = "btn";
 async function Review() {
   await connection();
   const user = await requireManager();
-  const [requests, held, reports] = await Promise.all([
+  const [requests, held, reports, approvedUsers] = await Promise.all([
     listPendingRequests(),
     listHeldRates(),
     listReportDates(10),
+    listApprovedUsers(),
   ]);
 
   return (
@@ -31,9 +34,9 @@ async function Review() {
       <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-8">
         <section>
           <h1 className="mb-4 text-3xl font-bold tracking-tight">담당자 확인</h1>
-          <h2 className="mb-2 text-xl font-bold">로그인 신청</h2>
+          <h2 className="mb-2 text-xl font-bold">가입 신청</h2>
           <p className="mb-3 text-sm text-muted">
-            승인하면 그 이메일만 입력해도 로그인돼요. 아는 사람의 이메일인지 확인한 뒤에 승인해 주세요.
+            승인하면 신청자가 정한 비밀번호로 로그인할 수 있어요. 아는 사람의 이메일인지 확인한 뒤에 승인해 주세요.
           </p>
           {requests.length === 0 ? (
             <p className="panel text-sm">
@@ -66,6 +69,20 @@ async function Review() {
               ))}
             </ul>
           )}
+        </section>
+
+        <section>
+          <h2 className="mb-2 text-xl font-bold">비밀번호 설정</h2>
+          <p className="mb-3 text-sm text-muted">
+            비밀번호를 잊은 사용자에게 새 비밀번호를 정해 줄 수 있어요. 메일이 가지 않으니 정한 뒤 사용자에게 직접 알려 주세요.
+          </p>
+          <ul className="card divide-y divide-line overflow-hidden">
+            {approvedUsers.map((item) => (
+              <li key={item.id}>
+                <PasswordForm id={item.id} email={item.email} role={item.role === "manager" ? "담당자" : "열람자"} />
+              </li>
+            ))}
+          </ul>
         </section>
 
         <section>

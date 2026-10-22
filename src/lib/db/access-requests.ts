@@ -1,4 +1,4 @@
-// Design Ref: §2.5 로그인 — 신청(승인 대기) 저장, 담당자의 승인·거절
+// Design Ref: §2.5 로그인 — 담당자의 승인·거절, 승인 대기 목록 (가입 신청 저장은 auth-users.ts)
 // 서버에서만 쓴다(server-only). 승인·거절은 requireManager()를 통과한 서버 함수에서만 부른다.
 import "server-only";
 
@@ -12,30 +12,6 @@ export const PENDING_KEEP_DAYS = 14;
 export const REJECTED_KEEP_DAYS = 30;
 
 export type PendingRequest = { id: number; email: string; requested_at: string };
-
-/** 신청을 "승인 대기"로 저장한다. 접수했으면 true, 대기 신청이 너무 많으면 "full". */
-export async function createPendingRequest(email: string): Promise<true | "full"> {
-  const client = createServiceClient();
-  // 오래된 신청은 지운다(개인정보를 오래 두지 않고, 가짜 신청이 자리를 오래 차지하지 못하게 한다): 대기 14일, 거절 30일.
-  const day = 24 * 3_600_000;
-  await client.from("allowed_users").delete().eq("status", "pending").lt("requested_at", new Date(Date.now() - PENDING_KEEP_DAYS * day).toISOString());
-  await client.from("allowed_users").delete().eq("status", "rejected").lt("requested_at", new Date(Date.now() - REJECTED_KEEP_DAYS * day).toISOString());
-  const count = await client
-    .from("allowed_users")
-    .select("id", { count: "exact", head: true })
-    .eq("status", "pending");
-  if (count.error) throw new Error(`신청 수를 읽지 못했습니다: ${count.error.message}`);
-  if ((count.count ?? 0) >= MAX_PENDING_REQUESTS) return "full";
-
-  // 같은 이메일이 동시에 두 번 들어와도 한 줄만 생기도록 이메일 중복 제한(unique)에 맡긴다.
-  const { error } = await client
-    .from("allowed_users")
-    .insert({ email, role: "viewer", status: "pending" });
-  if (error && error.code !== "23505") {
-    throw new Error(`신청을 저장하지 못했습니다: ${error.message}`);
-  }
-  return true;
-}
 
 /** 승인 대기 신청 목록(오래된 순). */
 export async function listPendingRequests(): Promise<PendingRequest[]> {

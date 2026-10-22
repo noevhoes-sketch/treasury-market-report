@@ -8,7 +8,7 @@ const ok = (name, cond) => { console.log(`${cond ? "✅" : "❌"} ${name}`); if 
 
 const a = replyToUnapprovedLogin("unknown"), b = replyToUnapprovedLogin("pending"), c = replyToUnapprovedLogin("rejected");
 ok("로그인: 등록 안 됨·대기·거절이 완전히 같은 답", JSON.stringify(a) === JSON.stringify(b) && JSON.stringify(b) === JSON.stringify(c));
-ok("로그인 답에 등록 신청 버튼이 항상 따라온다", a.canRequest === true);
+ok("로그인 답은 비밀번호 틀림과 미승인을 구분하지 않고, 가입 신청 안내가 들어 있다", replyToUnapprovedLogin().message === a.message && /가입 신청/.test(a.message));
 ok("로그인 답 문구에 '미등록·대기·거절·승인되지 않은' 같은 상태 단어가 없다", !/미등록|등록되지|대기 중|거절|승인되지/.test(a.message));
 const saved = replyToRequest("saved"), exists = replyToRequest("exists");
 ok("신청: 새 이메일과 이미 있는 이메일의 답이 같다", JSON.stringify(saved) === JSON.stringify(exists));

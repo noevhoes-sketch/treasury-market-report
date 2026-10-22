@@ -20,7 +20,7 @@ async function link(email){ const r = await svc.auth.admin.generateLink({type:"m
 // 1. 로그인 전
 let jar = new Jar();
 let r = await get("/", jar); ok("로그인 전 첫 화면은 로그인 화면으로 보낸다", r.status>=300 && r.status<400 && loc(r).includes("/login"), `${r.status}`);
-r = await get("/login", jar); const html = await r.text(); ok("로그인 화면이 열린다", r.status===200 && html.includes("등록을 신청") && html.includes("국채시장 동향"));
+r = await get("/login", jar); const html = await r.text(); ok("로그인 화면이 열린다", r.status===200 && html.includes("가입 신청") && html.includes("비밀번호") && html.includes("국채시장 동향"));
 r = await get("/auth/confirm?token_hash=bad&type=email", jar); ok("엉터리 링크는 실패 처리", loc(r)?.includes("/login?error=1"), loc(r));
 r = await get("/auth/callback", jar); ok("code 없는 callback은 실패 처리", loc(r)?.includes("/login?error=1"));
 
