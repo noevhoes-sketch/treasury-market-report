@@ -35,8 +35,10 @@ export type HwpxInput = {
   basisLines: readonly string[];
 };
 
-// 글자 모양(template.ts의 header 기준): 0 보통, 7 굵게, 5 제목(16pt), 2 작은 글씨(9pt). 문단: 0 양쪽 맞춤, 20 가운데.
-const BODY_WIDTH = 42520;
+// 정부 공문 보고서 양식(A4 한 장): 맨 위 부서, 위아래 굵은 선 제목 상자, □ 소제목, 회색 머리글 표, ○ 항목, ※ 출처, 맨 아래 기관명.
+// 글자 모양(template.ts의 header 기준): 0 보통 8 본문14 9 소제목16굵게 10 제목26굵게 11 표12 12 표12굵게 13 출처11 14 기관명22굵게 15 13pt
+// 문단: 0 양쪽 맞춤, 20 가운데, 21 제목 상자, 22 오른쪽, 23 ○ 항목(내어쓰기), 24 □ 소제목, 25 맨 아래 기관명
+const BODY_WIDTH = 48190;
 
 /** 한글이 문단마다 갖고 있는 줄 정보. 값은 열 때 한글이 다시 계산하므로 대략적인 값이면 된다. */
 function lineSeg(width = BODY_WIDTH): string {
@@ -48,17 +50,25 @@ function paragraph(text: string, charPr = 0, paraPr = 0, width = BODY_WIDTH): st
   return `<hp:p id="0" paraPrIDRef="${paraPr}" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">${run}${lineSeg(width)}</hp:p>`;
 }
 
-const COL_WIDTHS = [6000, 5217, 5217, 5217, 5217, 5217, 5217, 5217];
-const ROW_HEIGHT = 2400;
+// 표: 구분 칸을 넓게, 나머지 7칸은 같게 (합 48190)
+const COL_WIDTHS = [6890, 5900, 5900, 5900, 5900, 5900, 5900, 5900];
+const HEAD_HEIGHT = 4200;
+const ROW_HEIGHT = 5400;
+// 눈에 띄게 할 열: 금일(4), 전일비(5)
+const EMPHASIS_COLS = [4, 5];
 
 function cell(text: string, col: number, row: number): string {
   const width = COL_WIDTHS[col];
+  const head = row === 0;
+  const strong = head || col === 0 || EMPHASIS_COLS.includes(col);
+  // 머리글·구분 칸은 연한 회색, 금일·전일비 머리글은 진한 회색
+  const fill = head ? (EMPHASIS_COLS.includes(col) ? 5 : 4) : col === 0 ? 4 : 3;
   return (
-    `<hp:tc name="" header="${row === 0 ? 1 : 0}" hasMargin="0" protect="0" editable="0" dirty="0" borderFillIDRef="3">` +
+    `<hp:tc name="" header="${head ? 1 : 0}" hasMargin="0" protect="0" editable="0" dirty="0" borderFillIDRef="${fill}">` +
     `<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">` +
-    paragraph(text, row === 0 || col === 0 || col === 4 || col === 5 ? 7 : 0, 20, width - 1020) +
+    paragraph(text, strong ? 12 : 11, 20, width - 600) +
     `</hp:subList><hp:cellAddr colAddr="${col}" rowAddr="${row}"/><hp:cellSpan colSpan="1" rowSpan="1"/>` +
-    `<hp:cellSz width="${width}" height="${ROW_HEIGHT}"/><hp:cellMargin left="510" right="510" top="141" bottom="141"/></hp:tc>`
+    `<hp:cellSz width="${width}" height="${head ? HEAD_HEIGHT : ROW_HEIGHT}"/><hp:cellMargin left="300" right="300" top="141" bottom="141"/></hp:tc>`
   );
 }
 
@@ -79,28 +89,39 @@ function table(rows: readonly TableRow[]): string {
   return (
     `<hp:p id="0" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0"><hp:run charPrIDRef="0">` +
     `<hp:tbl id="1000001" zOrder="0" numberingType="TABLE" textWrap="TOP_AND_BOTTOM" textFlow="BOTH_SIDES" lock="0" dropcapstyle="None" pageBreak="CELL" repeatHeader="1" rowCnt="${all.length}" colCnt="8" cellSpacing="0" borderFillIDRef="3" noAdjust="0">` +
-    `<hp:sz width="${BODY_WIDTH}" widthRelTo="ABSOLUTE" height="${ROW_HEIGHT * all.length}" heightRelTo="ABSOLUTE" protect="0"/>` +
+    `<hp:sz width="${BODY_WIDTH}" widthRelTo="ABSOLUTE" height="${HEAD_HEIGHT + ROW_HEIGHT * rows.length}" heightRelTo="ABSOLUTE" protect="0"/>` +
     `<hp:pos treatAsChar="0" affectLSpacing="0" flowWithText="1" allowOverlap="0" holdAnchorAndSO="0" vertRelTo="PARA" horzRelTo="COLUMN" vertAlign="TOP" horzAlign="LEFT" vertOffset="0" horzOffset="0"/>` +
-    `<hp:outMargin left="283" right="283" top="283" bottom="283"/><hp:inMargin left="510" right="510" top="141" bottom="141"/>` +
+    `<hp:outMargin left="0" right="0" top="283" bottom="283"/><hp:inMargin left="510" right="510" top="141" bottom="141"/>` +
     trs +
     `</hp:tbl><hp:t/></hp:run>${lineSeg(0)}</hp:p>`
   );
 }
 
+const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+
+/** "2026-10-21" → "2026. 10. 21.(수)" (공문서 날짜 표기) */
+export function officialDate(date: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  return `${y}. ${m}. ${d}.(${WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]})`;
+}
+
 function section(input: HwpxInput): string {
   // 첫 문단에 쪽 설정(secPr)을 싣는다. 한글 문서는 항상 그렇게 시작한다.
-  const first = `<hp:p id="0" paraPrIDRef="0" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">${SEC_PR_RUN}<hp:run charPrIDRef="5"><hp:t>${xmlText(reportTitle(input.date))}</hp:t></hp:run>${lineSeg()}</hp:p>`;
+  const first = `<hp:p id="0" paraPrIDRef="22" styleIDRef="0" pageBreak="0" columnBreak="0" merged="0">${SEC_PR_RUN}<hp:run charPrIDRef="15"><hp:t>재정경제부 국고실</hp:t></hp:run>${lineSeg()}</hp:p>`;
   const body = [
     first,
-    paragraph(""),
+    paragraph(reportTitle(input.date), 10, 21),
+    paragraph("□ 금리 현황", 9, 24),
+    paragraph("(단위: %, bp)", 13, 22),
     table(input.rows),
-    paragraph(""),
-    paragraph("등락 원인", 7),
-    paragraph(`□ 국고채: ${input.causeKr}`),
-    paragraph(`□ 미국 금리: ${input.causeUs}`),
-    paragraph(""),
-    paragraph(`출처: ${input.sources}`, 2),
-    ...input.basisLines.map((line) => paragraph(line, 2)),
+    paragraph("□ 등락 원인", 9, 24),
+    paragraph(`○ 국고채: ${input.causeKr}`, 8, 23),
+    paragraph(`○ 미국 금리: ${input.causeUs}`, 8, 23),
+    paragraph("", 13, 0),
+    paragraph(`※ 출처: ${input.sources}`, 13, 0),
+    ...input.basisLines.map((line) => paragraph(`※ ${line}`, 13, 0)),
+    paragraph(officialDate(input.date), 15, 25),
+    paragraph("재정경제부 국고실", 14, 20),
   ].join("");
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>${SEC_OPEN}${body}</hs:sec>`;
 }

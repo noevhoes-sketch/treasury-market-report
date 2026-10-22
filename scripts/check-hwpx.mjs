@@ -39,8 +39,15 @@ ok("제목이 들어있다", section.includes("10/21(수) 국채시장 동향"))
 ok("금리 3.822와 전일비가 표에 들어있다", section.includes("3.822") && section.includes("-1.8bp"));
 ok("못 받은 칸은 미수집", section.includes("미수집"));
 ok("특수문자가 안전하게 바뀐다", section.includes("금리 &lt;하락&gt; &amp; &quot;안도&quot;") && !section.includes("<하락>"));
+ok("공문 양식: 부서·□ 소제목·○ 항목·※ 출처·날짜가 있다", ["재정경제부 국고실","□ 금리 현황","□ 등락 원인","○ 국고채:","○ 미국 금리:","※ 출처:","2026. 10. 21.(수)"].every((x)=>section.includes(x)));
 ok("표는 5줄 8칸", section.includes('rowCnt="5" colCnt="8"'));
 ok("xmlText 제어문자 제거", xmlText("a\u0001b") === "ab");
+const header = decoder.decode(files.get("Contents/header.xml").data);
+for (const [attr, tag] of [["charPrIDRef", "charPr"], ["paraPrIDRef", "paraPr"], ["borderFillIDRef", "borderFill"]]) {
+  const used = [...section.matchAll(new RegExp(attr + '="([0-9]+)"', "g"))].map((m) => Number(m[1]));
+  const defined = new Set([...header.matchAll(new RegExp("<hh:" + tag + ' id="([0-9]+)"', "g"))].map((m) => Number(m[1])));
+  ok(attr + ": 쓴 번호가 모두 header에 정의돼 있다", used.length > 0 && used.every((n) => defined.has(n)));
+}
 for (const [name, f] of files) {
   if (name.endsWith(".xml") || name.endsWith(".hpf")) {
     const text = decoder.decode(f.data);
