@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { PageSkeleton } from "@/app/page-skeleton";
 import { AppHeader } from "@/app/app-header";
 import { isBusinessDay, reportTitle, todayInKorea, toHolidaySet } from "@/lib/calc/business-days";
 import { buildReportTable, MISSING_TEXT } from "@/lib/calc/rates-format";
@@ -114,7 +115,7 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
 
 export default function ReviewDatePage({ params }: { params: Promise<{ date: string }> }) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PageSkeleton variant="list" />}>
       <ReviewDate params={params} />
     </Suspense>
   );

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
+import { PageSkeleton } from "@/app/page-skeleton";
 import { AppHeader } from "@/app/app-header";
 import {
   isBusinessDay,
@@ -66,7 +67,7 @@ async function Report({ params }: { params: Promise<{ date: string }> }) {
 
 export default function ReportPage({ params }: { params: Promise<{ date: string }> }) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PageSkeleton variant="report" />}>
       <Report params={params} />
     </Suspense>
   );

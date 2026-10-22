@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { PageSkeleton } from "@/app/page-skeleton";
 import { AppHeader } from "@/app/app-header";
 import { reportTitle } from "@/lib/calc/business-days";
 import { requireManager } from "@/lib/auth/guard";
@@ -121,7 +122,7 @@ async function Review() {
 
 export default function ReviewPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PageSkeleton variant="list" />}>
       <Review />
     </Suspense>
   );

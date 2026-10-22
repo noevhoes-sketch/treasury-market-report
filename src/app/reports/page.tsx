@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { connection } from "next/server";
+import { PageSkeleton } from "@/app/page-skeleton";
 import { AppHeader } from "@/app/app-header";
 import { reportTitle } from "@/lib/calc/business-days";
 import { requireUser } from "@/lib/auth/guard";
@@ -45,7 +46,7 @@ async function List() {
 
 export default function ReportsPage() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<PageSkeleton variant="list" />}>
       <List />
     </Suspense>
   );
