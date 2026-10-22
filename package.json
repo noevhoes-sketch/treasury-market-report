@@ -7,8 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "seed:us": "node --experimental-strip-types --no-warnings scripts/seed-us-rates.mjs",
     "check:login": "node --experimental-strip-types --no-warnings scripts/check-login-flow.mjs",
-    "check:calc": "node --experimental-strip-types --no-warnings scripts/check-business-days.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-format.mjs && node --experimental-strip-types --no-warnings scripts/check-access.mjs"
+    "check:calc": "node --experimental-strip-types --no-warnings scripts/check-business-days.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-format.mjs && node --experimental-strip-types --no-warnings scripts/check-access.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-collect.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
