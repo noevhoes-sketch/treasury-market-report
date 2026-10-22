@@ -12,7 +12,7 @@ const FIELDS = [
   { name: "us10", label: "미국 10년" },
 ] as const;
 
-export function RatesForm({ date, usDefault }: { date: string; usDefault: string }) {
+export function RatesForm({ date, usDefault, locked }: { date: string; usDefault: string; locked: Partial<Record<string, boolean>> }) {
   const [state, formAction, pending] = useActionState(submitManualRates, initial);
   return (
     <form action={formAction} className="flex flex-col gap-4">
@@ -21,7 +21,14 @@ export function RatesForm({ date, usDefault }: { date: string; usDefault: string
         {FIELDS.map((field) => (
           <label key={field.name} className="flex flex-col gap-1 text-sm font-bold">
             {field.label} (%)
-            <input name={field.name} inputMode="decimal" placeholder="예: 3.822" autoComplete="off" className="input font-normal" />
+            <input
+              name={field.name}
+              inputMode="decimal"
+              placeholder={locked[field.name] ? "자동 수집됨" : "예: 3.822"}
+              disabled={locked[field.name] === true}
+              autoComplete="off"
+              className="input font-normal disabled:cursor-not-allowed disabled:bg-surface"
+            />
           </label>
         ))}
         <label className="flex flex-col gap-1 text-sm font-bold">

@@ -3,15 +3,15 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { AppHeader } from "@/app/app-header";
-import { reportTitle } from "@/lib/calc/business-days";
-import { buildReportTable } from "@/lib/calc/rates-format";
+import { isBusinessDay, reportTitle, todayInKorea, toHolidaySet } from "@/lib/calc/business-days";
+import { buildReportTable, MISSING_TEXT } from "@/lib/calc/rates-format";
 import { pickReportInputs } from "@/lib/calc/report-table";
 import { requireManager } from "@/lib/auth/guard";
 import { isTrustedArticleUrl } from "@/lib/cause/infomax";
-import { CAUSE_STATUS_LABELS } from "@/lib/db/types";
+import { CAUSE_STATUS_LABELS, MANUAL_SOURCE } from "@/lib/db/types";
 import { isValidDateString } from "@/lib/rates/validate";
 import { whyCannotConfirm } from "@/lib/reports/cause-store";
-import { fetchRatesForReport, fetchReportRow } from "@/lib/reports/queries";
+import { fetchKrHolidaysAround, fetchRatesForReport, fetchReportRow } from "@/lib/reports/queries";
 import { CauseForm } from "./cause-form";
 import { RatesForm } from "./rates-form";
 
@@ -30,9 +30,13 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
   const { date } = await params;
   if (!isValidDateString(date)) notFound();
 
-  const [report, records] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date)]);
+  const [report, records, holidayRows] = await Promise.all([fetchReportRow(date), fetchRatesForReport(date), fetchKrHolidaysAround(date)]);
+  // 직접 입력은 영업일(오늘까지)에만 받고, 이미 자동으로 수집된 국고채 칸은 잠근다.
+  const canInput = date <= todayInKorea() && isBusinessDay(date, toHolidaySet(holidayRows, "kr"));
   const rows = buildReportTable(pickReportInputs(records, date));
   const confirmed = report?.confirmed_at != null;
+  const autoFilled = (index: number) => rows[index].today.text !== MISSING_TEXT && rows[index].today.source !== MANUAL_SOURCE;
+  const locked = { kr3: autoFilled(0), kr10: autoFilled(1), kr30: autoFilled(2) };
   const blocker = whyCannotConfirm(report);
   const stale = report?.cause_status_kr === "stale" || report?.cause_status_us === "stale";
   // 금리가 바뀌어 확정이 풀린 적이 있으면(원인 줄이 '근거 기사 없음'이어도) 알려 준다.
@@ -85,9 +89,13 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
         <section className="panel flex flex-col gap-3">
           <h2 className="text-xl font-bold">금리 직접 입력</h2>
           <p className="text-sm text-muted">
-            자동 수집이 안 된 날에만 쓰세요. 적은 칸만 저장되고, 출처는 &quot;담당자 직접 입력&quot;으로 남아요. 직접 넣은 값은 자동 수집이 덮어쓰지 않아요.
+            자동 수집이 안 된 날에만 쓰세요. 적은 칸만 저장되고, 출처는 &quot;담당자 직접 입력&quot;으로 남아요. 직접 넣은 값은 자동 수집이 덮어쓰지 않아요. 이미 자동으로 수집된 칸은 바꿀 수 없어요.
           </p>
-          <RatesForm date={date} usDefault={rows[3].today.asOf ?? ""} />
+          {canInput ? (
+            <RatesForm date={date} usDefault={rows[3].today.asOf ?? ""} locked={locked} />
+          ) : (
+            <p className="text-sm font-semibold">주말·휴장일이거나 아직 오지 않은 날짜라서 금리를 직접 넣을 수 없어요.</p>
+          )}
         </section>
 
         <section className="text-sm text-muted">

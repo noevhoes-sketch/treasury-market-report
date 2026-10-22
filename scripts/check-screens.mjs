@@ -121,17 +121,22 @@ try {
   // 한글 파일 내려받기
   r = await get(`/api/reports/${CONFIRMED_DATE}/hwpx`, new Jar());
   ok("한글 파일: 로그인 전에는 받을 수 없다", r.status >= 300 && r.status < 400, `${r.status}`);
-  r = await get(`/api/reports/${TEST_DATE}/hwpx`, viewer);
+  r = await get(`/api/reports/${TEST_DATE}/hwpx`, manager);
   ok("한글 파일: 확정 전 보고서는 거절(409)", r.status === 409, `${r.status}`);
   r = await get(`/api/reports/${CONFIRMED_DATE}/hwpx`, viewer);
+  ok("한글 파일: 열람자는 받을 수 없다(403)", r.status === 403, `${r.status}`);
+  r = await get(`/api/reports/${CONFIRMED_DATE}/hwpx`, manager);
   const bytes = new Uint8Array(await r.arrayBuffer());
-  ok("한글 파일: 확정된 보고서는 열람자도 받는다(zip, 첫 파일 mimetype)", r.status === 200 && bytes[0] === 0x50 && bytes[1] === 0x4b && new TextDecoder().decode(bytes.subarray(30, 38)) === "mimetype", `${r.status} ${bytes.length}B`);
+  ok("한글 파일: 확정된 보고서는 담당자가 받는다(zip, 첫 파일 mimetype)", r.status === 200 && bytes[0] === 0x50 && bytes[1] === 0x4b && new TextDecoder().decode(bytes.subarray(30, 38)) === "mimetype", `${r.status} ${bytes.length}B`);
   ok("한글 파일: 확정한 원인 문장이 들어있다", new TextDecoder().decode(bytes).includes(CONFIRMED_CAUSE));
   r = await get("/api/reports/2026-13-45/hwpx", manager);
   ok("한글 파일: 이상한 날짜는 404", r.status === 404, `${r.status}`);
+  r = await get("/reports/" + CONFIRMED_DATE, manager);
+  html = await r.text();
+  ok("담당자에게는 확정된 보고서에 [한글 파일 내려받기]가 보인다", html.includes("한글 파일(.hwpx) 내려받기"));
   r = await get("/reports/" + CONFIRMED_DATE, viewer);
   html = await r.text();
-  ok("확정된 보고서에 [한글 파일 내려받기]가 보인다", html.includes("한글 파일(.hwpx) 내려받기"));
+  ok("열람자에게는 [한글 파일 내려받기]가 보이지 않는다", !html.includes("한글 파일(.hwpx)"));
   r = await get(`/review/${TEST_DATE}`, manager);
   html = await r.text();
   ok("담당자 확인 화면에 금리 직접 입력이 보인다", html.includes("금리 직접 입력"));

@@ -5,9 +5,12 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { flagOutliers } from "./flag.ts";
 import { fetchKofiaDay, type KofiaDayStatus } from "./kofia.ts";
-import { kofiaYieldsToRates, upsertRates, usRowsToRates } from "./store.ts";
+import { kofiaYieldsToRates, upsertHolidays, upsertRates, usRowsToRates } from "./store.ts";
 import { fetchTreasuryTenYear } from "./ustreasury.ts";
 import { syncTableStatus } from "../reports/table-status.ts";
+
+/** 금투협 자료가 없어 자동으로 적은 휴장일의 이름. 나중에 자료가 올라오면(일시 장애였으면) 이 이름의 줄만 지운다. */
+export const AUTO_HOLIDAY_NAME = "휴장일(금투협 자료 없음, 자동 확인)";
 
 export type CollectDailyResult = {
   date: string;
@@ -33,10 +36,39 @@ export async function collectDaily(
   const krFlagged = await flagOutliers(client, kofiaYieldsToRates(today, kofia.yields));
   const krSaved = await upsertRates(client, krFlagged);
 
+  // 휴장일 기록: 평일인데 금투협 자료가 아예 없으면 휴장일로 적는다(임시공휴일도 자동으로 반영된다). 일시 장애였다면 자료가 올라온 뒤 자동으로 지운다.
+  if (kofia.status === "no-data") {
+    await upsertHolidays(client, [{ market: "kr", holiday_date: today, name: AUTO_HOLIDAY_NAME }]);
+  } else {
+    const { error } = await client
+      .from("holidays")
+      .delete()
+      .eq("market", "kr")
+      .eq("holiday_date", today)
+      .eq("name", AUTO_HOLIDAY_NAME);
+    if (error) throw new Error(`휴장일 기록을 정리하지 못했습니다: ${error.message}`);
+  }
+
   // 2) 미국 재무부: 한쪽이 실패해도 국고채 결과는 지킨다. 최근 일주일치만 다시 저장한다.
   let us: CollectDailyResult["us"];
   try {
-    const { rows } = await fetchTreasuryTenYear(Number(today.slice(0, 4)), fetchImpl);
+    // 1월에는 전년 자료도 함께 받는다: 미국 12/31 값은 한국 시간으로 1월에 나오므로, 올해 자료만 받으면 "전년말" 값이 빠진다.
+    const year = Number(today.slice(0, 4));
+    const years = today.slice(5, 7) === "01" ? [year, year - 1] : [year];
+    // 전년 자료를 못 받아도 올해 자료는 저장한다.
+    const rows = (
+      await Promise.all(
+        years.map((y, i) =>
+          fetchTreasuryTenYear(y, fetchImpl).then(
+            (result) => result.rows,
+            (error) => {
+              if (i === 0) throw error;
+              return [];
+            },
+          ),
+        ),
+      )
+    ).flat();
     const recent = [...rows].sort((a, b) => (a.date < b.date ? 1 : -1)).slice(0, 7);
     const flagged = await flagOutliers(client, usRowsToRates(recent));
     const saved = await upsertRates(client, flagged);
@@ -50,7 +82,8 @@ export async function collectDaily(
   }
 
   // 3) 보고서 한 건과 금리 표 상태. 저장된 국고채 값이 3개 모두 있으면(직접 입력한 값 포함) 완료, 완료된 표를 대기로 되돌리지 않는다.
-  const tableStatus = await syncTableStatus(client, today);
+  // 휴장일(자료 없음)이면 보고서 행을 만들지 않는다.
+  const tableStatus = kofia.status === "no-data" ? "waiting" : await syncTableStatus(client, today);
 
   return {
     date: today,

@@ -9,6 +9,7 @@ import {
 import { backfillKofia, collectKofiaDay, weekdaysBetween } from "../src/lib/rates/collect-kr.ts";
 import { usHolidaysFromRows } from "../src/lib/rates/collect-us.ts";
 import { kofiaYieldsToRates } from "../src/lib/rates/store.ts";
+import { AUTO_HOLIDAY_NAME, collectDaily } from "../src/lib/rates/collect-daily.ts";
 
 let passed = 0;
 async function check(name, fn) {
@@ -161,6 +162,49 @@ await check("미국 휴장일: 자료 첫 날~마지막 날 사이 빈 평일만
   const rows = [{ date: "2026-10-12", rate: 5 }, { date: "2026-10-14", rate: 5 }, { date: "2026-10-15", rate: 5 }];
   assert.deepEqual(usHolidaysFromRows(rows).map((h) => h.holiday_date), ["2026-10-13"]);
   assert.deepEqual(usHolidaysFromRows([]), []);
+});
+
+// 어떤 호출이든 기록하고, 기다리면 빈 결과를 돌려주는 가짜 연결(하루 수집 전체 흐름 확인용)
+function recordingClient() {
+  const ops = [];
+  const make = (table, path) => new Proxy(function () {}, {
+    get(_t, prop) {
+      if (prop === "then") return (resolve) => resolve({ data: [], count: 0, error: null });
+      if (prop === "maybeSingle") return async () => ({ data: null, error: null });
+      return (...args) => { ops.push({ table, path: [...path, prop], args }); return make(table, [...path, prop]); };
+    },
+  });
+  return { ops, from: (table) => make(table, []) };
+}
+const CSV = (dates) => ["Date,10 Yr", ...dates.map((d) => d + ",4.10")].join("\n");
+await check("하루 수집: 자료가 아예 없는 평일은 휴장일로 자동 기록하고 보고서 행은 만들지 않는다", async () => {
+  const client = recordingClient();
+  const fetchImpl = async (url) => new Response(String(url).includes("kofiabond") ? EMPTY : CSV(["10/20/2026"]));
+  const result = await collectDaily(client, "2026-10-21", fetchImpl);
+  assert.equal(result.kr, "no-data");
+  const holiday = client.ops.find((o) => o.table === "holidays" && o.path[0] === "upsert");
+  assert.deepEqual(holiday.args[0], [{ market: "kr", holiday_date: "2026-10-21", name: AUTO_HOLIDAY_NAME }]);
+  assert.equal(client.ops.some((o) => o.table === "reports"), false);
+});
+await check("하루 수집: 자료가 올라오면 자동으로 적은 휴장일 기록만 지운다(일시 장애 복구)", async () => {
+  const client = recordingClient();
+  const fetchImpl = async (url) => new Response(String(url).includes("kofiabond") ? NORMAL : CSV(["10/20/2026"]));
+  await collectDaily(client, "2026-10-21", fetchImpl);
+  const ops = client.ops.filter((o) => o.table === "holidays");
+  assert.equal(ops.some((o) => o.path[0] === "delete"), true);
+  assert.equal(ops.some((o) => o.path[0] === "upsert"), false);
+  const nameFilter = ops.find((o) => o.path.at(-1) === "eq" && o.args[0] === "name");
+  assert.equal(nameFilter.args[1], AUTO_HOLIDAY_NAME);
+});
+await check("하루 수집: 1월에는 미국 전년 자료도 받아 12/31 값이 빠지지 않는다", async () => {
+  const client = recordingClient();
+  const urls = [];
+  const fetchImpl = async (url) => { urls.push(String(url)); return new Response(String(url).includes("kofiabond") ? NORMAL : CSV(["12/31/2025", "01/02/2026"])); };
+  await collectDaily(client, "2026-01-05", fetchImpl);
+  assert.equal(urls.some((u) => u.includes("/2026/")), true);
+  assert.equal(urls.some((u) => u.includes("/2025/")), true);
+  const saved = client.ops.filter((o) => o.table === "rates" && o.path[0] === "upsert").flatMap((o) => o.args[0]);
+  assert.equal(saved.some((r) => r.instrument === "us10" && r.rate_date === "2025-12-31"), true);
 });
 
 console.log(`\n모두 통과: ${passed}개`);

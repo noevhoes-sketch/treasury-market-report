@@ -3,10 +3,12 @@ import Link from "next/link";
 import {
   CAUSE_STATUS_LABELS,
   INSTRUMENT_LABELS,
+  MANUAL_SOURCE,
   type ReportRow,
   type Role,
 } from "@/lib/db/types";
 import { HELD_TEXT, MISSING_TEXT, type Cell, type TableRow } from "@/lib/calc/rates-format";
+import { todayInKorea } from "@/lib/calc/business-days";
 import { reportTitle } from "@/lib/calc/business-days";
 import { isTrustedArticleUrl } from "@/lib/cause/infomax";
 import type { TrendInstrument, TrendPoint } from "@/lib/reports/trend";
@@ -27,7 +29,11 @@ type Props = {
   trend: TrendPoint[];
 };
 
+/** 오늘 보고서에서 값이 아직 올라오지 않은 칸의 표시(어제 이전 날짜의 빈 칸은 "미수집") */
+const WAITING_TEXT = "대기 중";
+
 function cellClass(cell: Cell): string {
+  if (cell.text === WAITING_TEXT) return "text-muted";
   if (cell.text === HELD_TEXT) return "bg-[#fff4e5] font-semibold text-[#8a4b00]";
   if (cell.text === MISSING_TEXT) return "text-muted";
   return "";
@@ -40,6 +46,9 @@ function DataCell({ cell, strong = false }: { cell: Cell; strong?: boolean }) {
   return (
     <td title={title} className={`px-4 py-3 text-right tabular-nums ${cellClass(cell)} ${emphasis}`}>
       {cell.text}
+      {cell.source === MANUAL_SOURCE && cell.text !== MISSING_TEXT ? (
+        <span className="ml-1 rounded bg-surface px-1 align-middle text-[10px] font-normal text-muted">직접</span>
+      ) : null}
     </td>
   );
 }
@@ -112,6 +121,9 @@ export function ReportView(props: Props) {
   const us = rows.find((row) => row.instrument === "us10");
   const krDone = rows.filter((row) => row.instrument.startsWith("kr")).every((row) => row.today.text !== MISSING_TEXT);
   const confirmed = report?.confirmed_at != null;
+  // 오늘(또는 앞으로의) 국고채 값이 아직 안 올라왔으면 "미수집" 대신 "대기 중"으로 보여준다. 이미 지난 날짜의 빈 칸은 그대로 "미수집".
+  const waitingToday = !krDone && date >= todayInKorea();
+  const waiting = (cell: Cell): Cell => (waitingToday && cell.text === MISSING_TEXT ? { ...cell, text: WAITING_TEXT } : cell);
 
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-8">
@@ -188,10 +200,10 @@ export function ReportView(props: Props) {
                       <DataCell cell={row.previousYearEnd} />
                       <DataCell cell={row.previousMonthEnd} />
                       <DataCell cell={row.previousDay} />
-                      <DataCell cell={row.today} strong />
-                      <DataCell cell={row.changeFromPreviousDay} strong />
-                      <DataCell cell={row.changeFromMonthEnd} />
-                      <DataCell cell={row.changeFromYearEnd} />
+                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.today) : row.today} strong />
+                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.changeFromPreviousDay) : row.changeFromPreviousDay} strong />
+                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.changeFromMonthEnd) : row.changeFromMonthEnd} />
+                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.changeFromYearEnd) : row.changeFromYearEnd} />
                     </tr>
                   ))}
                 </tbody>
@@ -236,7 +248,7 @@ export function ReportView(props: Props) {
                 </dd>
               </div>
             </dl>
-            {confirmed ? (
+            {role !== "manager" ? null : confirmed ? (
               <p>
                 <a href={`/api/reports/${date}/hwpx`} className="btn btn-primary" download>
                   한글 파일(.hwpx) 내려받기

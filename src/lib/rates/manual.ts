@@ -4,6 +4,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { MANUAL_SOURCE, type Instrument } from "../db/types.ts";
+import { todayInKorea } from "../calc/business-days.ts";
 import { syncTableStatus } from "../reports/table-status.ts";
 import { isValidDateString, parseRateText } from "./validate.ts";
 
@@ -37,9 +38,16 @@ function usDateOk(usDate: string, reportDate: string): boolean {
  *  - 금리는 0~20%, 소수 둘째~셋째 자리 (출처 값 그대로 쓰므로 추정하지 않는다)
  *  - 국고채는 보고서 날짜로, 미국은 입력한 미국 기준일로 저장한다
  *  - 값이 바뀌면 DB가 이미 한 확정을 풀어 준다
+ *  - 미래 날짜, 주말·휴장일에는 넣을 수 없고, 이미 자동으로 수집된 값은 바꿀 수 없다(자동 수집 값은 출처 그대로여야 한다. 직접 넣은 값을 고치는 것은 가능)
  */
 export async function saveManualRates(client: SupabaseClient, input: ManualInput, enteredBy?: number): Promise<ManualResult> {
   if (!isValidDateString(input.date)) return { ok: false, reason: "날짜가 올바르지 않습니다." };
+  if (input.date > todayInKorea()) return { ok: false, reason: "아직 오지 않은 날짜에는 금리를 넣을 수 없어요." };
+  const weekday = new Date(`${input.date}T00:00:00Z`).getUTCDay();
+  if (weekday === 0 || weekday === 6) return { ok: false, reason: "주말에는 보고서가 없어서 금리를 넣을 수 없어요." };
+  const holiday = await client.from("holidays").select("holiday_date").eq("market", "kr").eq("holiday_date", input.date).maybeSingle();
+  if (holiday.error) throw new Error(`휴장일을 읽지 못했습니다: ${holiday.error.message}`);
+  if (holiday.data) return { ok: false, reason: "휴장일에는 보고서가 없어서 금리를 넣을 수 없어요." };
 
   const rows: {
     rate_date: string;
@@ -83,6 +91,15 @@ export async function saveManualRates(client: SupabaseClient, input: ManualInput
   }
 
   if (rows.length === 0) return { ok: false, reason: "넣을 금리를 한 칸 이상 적어 주세요." };
+
+  // 이미 자동으로 수집된 값(직접 입력이 아닌 값)은 바꾸지 않는다.
+  for (const date of new Set(rows.map((row) => row.rate_date))) {
+    const instruments = rows.filter((row) => row.rate_date === date).map((row) => row.instrument);
+    const existing = await client.from("rates").select("instrument, is_manual").eq("rate_date", date).in("instrument", instruments);
+    if (existing.error) throw new Error(`기존 금리를 읽지 못했습니다: ${existing.error.message}`);
+    const auto = ((existing.data ?? []) as { instrument: Instrument; is_manual: boolean }[]).find((row) => !row.is_manual);
+    if (auto) return { ok: false, reason: `${NAMES[auto.instrument]}: 이미 자동으로 수집된 값이 있어서 직접 입력으로 바꿀 수 없어요.` };
+  }
 
   const { error } = await client.from("rates").upsert(rows, { onConflict: "rate_date,instrument" });
   if (error) throw new Error(`직접 입력한 금리를 저장하지 못했습니다: ${error.message}`);

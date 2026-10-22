@@ -86,6 +86,8 @@ export async function fetchTreasuryTenYear(
     headers: { "User-Agent": "Mozilla/5.0" },
     // 자료가 하루에 한 번만 바뀌므로 서버 캐시 없이 매번 새로 받는다.
     cache: "no-store",
+    // 서버가 응답하지 않을 때 오래 붙잡혀 뒤의 저장·표 상태 갱신까지 끊기지 않게 한다.
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) {
     throw new Error(`재무부 자료를 받지 못했습니다. (상태 ${response.status})`);

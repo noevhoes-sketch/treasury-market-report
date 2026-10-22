@@ -4,9 +4,17 @@ import { saveManualRates } from "../src/lib/rates/manual.ts";
 
 let failed = 0;
 const ok = (name, cond) => { console.log(`${cond ? "✅" : "❌"} ${name}`); if (!cond) failed++; };
-function fake(existing = []) {
+// existing: 그날 이미 저장된 종목들. autoExisting이 참이면 그 값들이 자동 수집 값(직접 입력 아님)이다. holiday가 참이면 그날이 휴장일이다.
+function fake(existing = [], opts = {}) {
   const calls = [];
-  return { calls, from: () => ({ select: () => ({ eq: () => ({ in: async () => ({ data: existing.map((instrument) => ({ instrument })), error: null }) }) }), upsert: async (rows) => { calls.push(rows); return { error: null }; } }) };
+  const rows = existing.map((instrument) => ({ instrument, is_manual: !opts.autoExisting }));
+  return {
+    calls,
+    from: (table) =>
+      table === "holidays"
+        ? { select: () => ({ eq: () => ({ eq: () => ({ maybeSingle: async () => ({ data: opts.holiday ? { holiday_date: "x" } : null, error: null }) }) }) }) }
+        : { select: () => ({ eq: () => ({ in: async (_column, list) => ({ data: rows.filter((row) => list.includes(row.instrument)), error: null }) }) }), upsert: async (r) => { calls.push(r); return { error: null }; } },
+  };
 }
 
 let c = fake();
@@ -48,4 +56,22 @@ ok("3개가 안 모였으면 완료로 올리지 않는다", r.ok && !c.calls.so
 c = fake(["kr3", "kr10", "kr30"]);
 r = await saveManualRates(c, { date: "2026-10-21", values: { us10: "4.10" }, usDate: "2026-10-20" });
 ok("미국 값만 넣으면 표 상태는 건드리지 않는다", r.ok && c.calls.length === 1);
+c = fake();
+r = await saveManualRates(c, { date: "2999-01-01", values: { kr3: "3.822" } });
+ok("아직 오지 않은 날짜에는 넣을 수 없다", !r.ok && c.calls.length === 0);
+c = fake();
+r = await saveManualRates(c, { date: "2026-10-24", values: { kr3: "3.822" } });
+ok("주말에는 넣을 수 없다", !r.ok && c.calls.length === 0);
+c = fake([], { holiday: true });
+r = await saveManualRates(c, { date: "2026-10-21", values: { kr3: "3.822" } });
+ok("휴장일에는 넣을 수 없다", !r.ok && c.calls.length === 0);
+c = fake(["kr3"], { autoExisting: true });
+r = await saveManualRates(c, { date: "2026-10-21", values: { kr3: "3.822" } });
+ok("이미 자동으로 수집된 값은 직접 입력으로 바꿀 수 없다", !r.ok && /자동으로 수집/.test(r.reason) && c.calls.length === 0);
+c = fake(["kr3"]);
+r = await saveManualRates(c, { date: "2026-10-21", values: { kr3: "3.822" } });
+ok("직접 넣었던 값은 다시 고칠 수 있다", r.ok && c.calls.length >= 1);
+c = fake(["kr10"], { autoExisting: true });
+r = await saveManualRates(c, { date: "2026-10-21", values: { kr3: "3.822" } });
+ok("자동 수집된 다른 종목이 있어도 비어 있는 종목은 넣을 수 있다", r.ok);
 process.exit(failed ? 1 : 0);
