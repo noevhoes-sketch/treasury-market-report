@@ -9,6 +9,8 @@ import {
 import { HELD_TEXT, MISSING_TEXT, type Cell, type TableRow } from "@/lib/calc/rates-format";
 import { reportTitle } from "@/lib/calc/business-days";
 import { isTrustedArticleUrl } from "@/lib/cause/infomax";
+import type { TrendInstrument, TrendPoint } from "@/lib/reports/trend";
+import { TrendChart } from "./trend-chart";
 
 type Props = {
   date: string;
@@ -21,6 +23,8 @@ type Props = {
   nextDate: string;
   /** 보류된 값이 있는가 */
   hasHeld: boolean;
+  /** 국고채 금리 추이 그래프용 점들 */
+  trend: TrendPoint[];
 };
 
 function cellClass(cell: Cell): string {
@@ -96,7 +100,14 @@ function CauseExtras({ report, line, role }: { report: ReportRow | null; line: "
 }
 
 export function ReportView(props: Props) {
-  const { date, rows, report, role, holiday, previousDate, nextDate, hasHeld } = props;
+  const { date, rows, report, role, holiday, previousDate, nextDate, hasHeld, trend } = props;
+  // 그래프의 점선(전월말 값): 표의 전월말 칸이 숫자일 때만 쓴다.
+  const monthEnd = (instrument: TrendInstrument): number | null => {
+    const text = rows.find((row) => row.instrument === instrument)?.previousMonthEnd.text ?? "";
+    return /^\d/.test(text) ? Number(text) : null;
+  };
+  const baseline = { kr3: monthEnd("kr3"), kr10: monthEnd("kr10"), kr30: monthEnd("kr30") };
+  const baselineDate = rows.find((row) => row.instrument === "kr3")?.previousMonthEnd.asOf ?? null;
   const kr = rows.find((row) => row.instrument === "kr3");
   const us = rows.find((row) => row.instrument === "us10");
   const krDone = rows.filter((row) => row.instrument.startsWith("kr")).every((row) => row.today.text !== MISSING_TEXT);
@@ -190,6 +201,13 @@ export function ReportView(props: Props) {
               <p>출처: {sourcesOf(rows)} (칸에 마우스를 올리면 출처와 기준일이 보여요)</p>
               <p>기준일 · {basisText("국고채", kr)}</p>
               <p>기준일 · {basisText("미국 10년(최신 마감일 값)", us)}</p>
+            </div>
+          </section>
+
+          <section className="panel flex flex-col gap-3">
+            <h2 className="text-xl font-bold">국고채 금리 추이</h2>
+            <div className="card p-4">
+              <TrendChart points={trend} baseline={baseline} baselineDate={baselineDate} />
             </div>
           </section>
 

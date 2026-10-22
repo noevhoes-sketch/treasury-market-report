@@ -16,7 +16,9 @@ import {
   fetchKrHolidaysAround,
   fetchRatesForReport,
   fetchReportRow,
+  fetchTrendRecords,
 } from "@/lib/reports/queries";
+import { buildTrend } from "@/lib/reports/trend";
 import { ReportView } from "../report-view";
 
 // Design Ref: §1.2 보고서 화면 `/reports/2026-10-22` (날짜별)
@@ -28,10 +30,11 @@ async function Report({ params }: { params: Promise<{ date: string }> }) {
   const { date } = await params;
   if (!isValidDateString(date)) notFound();
 
-  const [records, report, holidayRows] = await Promise.all([
+  const [records, report, holidayRows, trendRecords] = await Promise.all([
     fetchRatesForReport(date),
     fetchReportRow(date),
     fetchKrHolidaysAround(date),
+    fetchTrendRecords(date),
   ]);
   const holidays = toHolidaySet(holidayRows, "kr");
   const rows = buildReportTable(pickReportInputs(records, date));
@@ -52,6 +55,7 @@ async function Report({ params }: { params: Promise<{ date: string }> }) {
           previousDate={previousBusinessDay(date, holidays)}
           nextDate={nextBusinessDay(date, holidays)}
           hasHeld={hasHeld}
+          trend={buildTrend(trendRecords, date)}
         />
       </main>
     </>

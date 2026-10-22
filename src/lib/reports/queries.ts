@@ -6,10 +6,25 @@ import type { RateRecord } from "../calc/report-table";
 import { createServiceClient } from "../db/server";
 import type { Instrument, ReportRow } from "../db/types";
 import { fetchRatesForReportWith, minusDays } from "./rates-window";
+import { TREND_DAYS, TREND_INSTRUMENTS, type TrendRecord } from "./trend";
 
 /** 한 보고서에 필요한 금리 줄(보고서 날짜·지난달 말·지난해 말 근처). */
 export async function fetchRatesForReport(date: string): Promise<RateRecord[]> {
   return fetchRatesForReportWith(createServiceClient(), date);
+}
+
+/** 금리 추이 그래프용: 보고서 날짜 앞 약 7주의 국고채 값(보류 포함, 그릴 때 거른다). */
+export async function fetchTrendRecords(date: string): Promise<TrendRecord[]> {
+  const { data, error } = await createServiceClient()
+    .from("rates")
+    .select("rate_date, instrument, rate, held")
+    .in("instrument", [...TREND_INSTRUMENTS])
+    .gte("rate_date", minusDays(date, TREND_DAYS))
+    .lte("rate_date", date)
+    .order("rate_date", { ascending: true })
+    .returns<TrendRecord[]>();
+  if (error) throw new Error(`금리 추이를 읽지 못했습니다: ${error.message}`);
+  return data ?? [];
 }
 
 /** 보고서 한 건(없으면 null). */
