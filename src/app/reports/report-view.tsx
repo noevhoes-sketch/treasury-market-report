@@ -213,6 +213,15 @@ export function ReportView(props: Props) {
                 </dd>
               </div>
             </dl>
+            {confirmed ? (
+              <p>
+                <a href={`/api/reports/${date}/hwpx`} className="btn btn-primary" download>
+                  한글 파일(.hwpx) 내려받기
+                </a>
+              </p>
+            ) : (
+              <p className="text-sm text-muted">담당자가 원인을 확정하면 한글 파일을 내려받을 수 있어요.</p>
+            )}
           </section>
         </>
       )}

@@ -13,6 +13,7 @@ import { isValidDateString } from "@/lib/rates/validate";
 import { whyCannotConfirm } from "@/lib/reports/cause-store";
 import { fetchRatesForReport, fetchReportRow } from "@/lib/reports/queries";
 import { CauseForm } from "./cause-form";
+import { RatesForm } from "./rates-form";
 
 export const metadata = { title: "원인 확인·확정 · 국채시장 동향" };
 
@@ -78,6 +79,14 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
           krUrl={isTrustedArticleUrl(report?.source_url_kr) ? report!.source_url_kr : null}
           usUrl={isTrustedArticleUrl(report?.source_url_us) ? report!.source_url_us : null}
         />
+
+        <section className="panel flex flex-col gap-3">
+          <h2 className="text-xl font-bold">금리 직접 입력</h2>
+          <p className="text-sm text-muted">
+            자동 수집이 안 된 날에만 쓰세요. 적은 칸만 저장되고, 출처는 &quot;담당자 직접 입력&quot;으로 남아요. 직접 넣은 값은 자동 수집이 덮어쓰지 않아요.
+          </p>
+          <RatesForm date={date} usDefault={rows[3].today.asOf ?? ""} />
+        </section>
 
         <section className="text-sm text-muted">
           <p>
