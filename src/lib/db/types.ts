@@ -66,7 +66,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 /** 등락 원인 한 줄의 최대 글자 수 (공백 포함, PRD 5번 규칙) */
-export const CAUSE_MAX_LENGTH = 60;
+export const CAUSE_MAX_LENGTH = 80;
 
 /** 금리 한 줄 (표: rates) */
 export type RateRow = {

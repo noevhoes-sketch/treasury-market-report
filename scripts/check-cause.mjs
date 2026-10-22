@@ -88,12 +88,12 @@ await check("날짜에 맞는 기사 고르기: 입력 날짜가 같은 [채권-
 
 // ── 문장 검사 ──
 const ok = (text, line = "kr", article = ARTICLE_TEXT) => validateCause(text, line, ROWS, article);
-await check("문장 검사: 길이는 공백 포함 60자까지", () => {
-  const sixty = "가".repeat(60);
-  assert.equal(charCount(sixty), 60);
-  assert.equal(validateCause(sixty, "kr", ROWS).ok, true);
-  assert.equal(validateCause("가".repeat(61), "kr", ROWS).ok, false);
-  assert.equal(validateCause("가 ".repeat(30) + "가", "kr", ROWS).ok, false); // 공백 포함 61자
+await check("문장 검사: 길이는 공백 포함 80자까지", () => {
+  const eighty = "가".repeat(80);
+  assert.equal(charCount(eighty), 80);
+  assert.equal(validateCause(eighty, "kr", ROWS).ok, true);
+  assert.equal(validateCause("가".repeat(81), "kr", ROWS).ok, false);
+  assert.equal(validateCause("가 ".repeat(40) + "가", "kr", ROWS).ok, false); // 공백 포함 81자
 });
 await check("근거 검사: 기사에 흔한 말 두어 개만 있고 나머지 이유가 기사에 없으면 거부", () => {
   assert.equal(ok("외국인 선물 순매수에 정부 대규모 재정 지출 발표와 연기금 대량 매도 영향으로 금리가 하락했다").ok, false);
@@ -128,6 +128,11 @@ await check("문장 검사: 표의 방향(하락)과 어긋나면 거부", () =>
   assert.equal(ok("금통위 경계심 낮아 국고채 금리가 상승했다").ok, false);
   assert.equal(ok("금통위 경계심 낮아 국고채 금리가 하락했다").ok, true);
   assert.equal(validateCause("금통위 경계심 낮았지만 장 막판 반등하며 하락했다", "kr", ROWS).ok, true); // 둘 다 있으면 통과
+});
+await check("문장 검사: 채권 용어 모순(매수에 따른 강세인데 금리 상승 등)은 거부", () => {
+  const down = (text) => validateCause(text, "kr", ROWS).ok; // ROWS의 국고 3년 전일비는 -1.8bp(하락)
+  assert.equal(down("외국인 선물 순매수에 따른 강세 영향으로 국고채 금리가 하락 마감"), true);
+  assert.equal(down("외국인 선물 매도에 따른 약세 영향으로 국고채 금리가 하락 마감"), false);
 });
 await check("문장 검사: 기사에서 근거를 찾지 못하면 거부, 담당자 문장은 기사 없이 검사", () => {
   assert.equal(ok("외계인 침공 소식에 국고채 금리가 하락했다").ok, false);
@@ -215,8 +220,8 @@ await check("담당자 저장: 검사를 통과해야 저장하고, 저장하면
     cause_status_kr: "draft", cause_status_us: "no_source", has_manager_edit: true, confirmed_by: null, confirmed_at: null,
   });
 });
-await check("담당자 저장: 61자·전망 표현·표에 없는 숫자는 저장하지 않는다", async () => {
-  for (const kr of ["가".repeat(61), "금리가 하락할 전망이다", "금리가 9.9bp 하락했다"]) {
+await check("담당자 저장: 81자·전망 표현·표에 없는 숫자는 저장하지 않는다", async () => {
+  for (const kr of ["가".repeat(81), "금리가 하락할 전망이다", "금리가 9.9bp 하락했다"]) {
     const { client, state } = fakeDb(READY);
     const saved = await saveManagerCauses(client, "2026-10-21", { kr, us: "" }, ROWS);
     assert.equal(saved.ok, false);

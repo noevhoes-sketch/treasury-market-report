@@ -1,9 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { CAUSE_MAX_LENGTH } from "@/lib/db/types";
 import { submitCauses, type CauseFormState } from "./actions";
 
-const MAX = 60;
+const MAX = CAUSE_MAX_LENGTH;
 const initial: CauseFormState = { kind: "idle", message: null };
 
 type Props = {

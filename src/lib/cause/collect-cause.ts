@@ -96,6 +96,26 @@ export async function generateCauseDraft(
     };
   }
 
+  // 80자를 넘겨 걸러진 줄이 있으면, 문장을 더 줄이라고 한 번만 다시 요청한다(통과한 줄은 그대로 둔다).
+  const tooLong = (line: CauseLine) => {
+    const candidate = raw[line];
+    const check = typeof candidate === "string" ? validateCause(candidate, line, rows, article.text) : null;
+    return check !== null && !check.ok && check.reason.includes("초과");
+  };
+  if (tooLong("kr") || tooLong("us")) {
+    try {
+      const retry = await requestDraft(rows, article.text, {
+        apiKey: deps.apiKey,
+        model: deps.model,
+        fetchImpl: deps.fetchImpl,
+        hint: "이전 답에 80자를 넘은 문장이 있었습니다. 각 문장을 70자 안팎으로 더 줄여서 다시 답하세요. 원인은 가장 중요한 하나나 둘만 남기세요.",
+      });
+      for (const line of ["kr", "us"] as const) if (tooLong(line)) raw[line] = retry[line];
+    } catch {
+      // 다시 요청이 실패하면 처음 답을 그대로 검사한다(걸러진 줄은 "근거 기사 없음"으로 남는다).
+    }
+  }
+
   const lines: Record<CauseLine, GeneratedLine> = { kr: null, us: null };
   const notes: Record<CauseLine, string> = { kr: "", us: "" };
   for (const line of ["kr", "us"] as const) {

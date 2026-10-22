@@ -13,7 +13,7 @@ import { fetchKrHolidaySet, fetchRatesForReport } from "@/lib/reports/queries";
 
 export type CauseFormState = { kind: "idle" | "ok" | "error"; message: string | null };
 
-/** 폼에서 온 글을 안전하게 문자열로. 너무 긴 글은 검사 전에 잘라 낸다(검사에서 60자 초과로 걸러진다). */
+/** 폼에서 온 글을 안전하게 문자열로. 너무 긴 글은 검사 전에 잘라 낸다(검사에서 80자 초과로 걸러진다). */
 function text(value: FormDataEntryValue | null): string {
   return typeof value === "string" ? value.slice(0, 500) : "";
 }

@@ -1,12 +1,12 @@
-// Design Ref: §2.2 ③ 숫자와 어긋나는지, 60자를 넘는지 검사 + §4.5 기사 속 명령 무시(프롬프트 인젝션 대비)
+// Design Ref: §2.2 ③ 숫자와 어긋나는지, 80자를 넘는지 검사 + §4.5 기사 속 명령 무시(프롬프트 인젝션 대비)
 // Plan 작업 12: AI가 쓴 원인 문장은 믿지 않고 한 번 걸러서 쓴다. 걸러지면 "근거 기사 없음"으로 처리한다.
-// PRD 5번 규칙: 한 문장 60자 이내(공백 포함), 표 숫자와 어긋나지 않게, 근거 없는 이유는 쓰지 않기, 전망·투자 의견 금지.
+// PRD 5번 규칙: 한 문장 80자 이내(공백 포함), 표 숫자와 어긋나지 않게, 근거 없는 이유는 쓰지 않기, 전망·투자 의견 금지.
 
 import type { TableRow } from "../calc/rates-format.ts";
 
 export type CauseLine = "kr" | "us";
 
-export const CAUSE_MAX_CHARS = 60;
+export const CAUSE_MAX_CHARS = 80;
 
 export type CauseCheck = { ok: true; text: string } | { ok: false; reason: string };
 
@@ -116,6 +116,9 @@ export function validateCause(
     const down = DOWN_WORDS.test(text);
     if (change < 0 && up && !down) return { ok: false, reason: "표(하락)와 방향이 다름" };
     if (change > 0 && down && !up) return { ok: false, reason: "표(상승)와 방향이 다름" };
+    // 채권 용어 모순: 금리 상승(채권 약세)인데 "매수에 따른 강세", 금리 하락(채권 강세)인데 "매도에 따른 약세"라고 쓴 경우
+    if (change > 0 && /매수[^,，]{0,15}강세/.test(text)) return { ok: false, reason: "매수·강세(금리 하락)가 표(상승)와 모순" };
+    if (change < 0 && /매도[^,，]{0,15}약세/.test(text)) return { ok: false, reason: "매도·약세(금리 상승)가 표(하락)와 모순" };
   }
 
   // 근거: 일반적인 말을 뺀 단어가 둘 이상 기사에 실제로 있어야 한다.
