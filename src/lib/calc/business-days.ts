@@ -98,3 +98,13 @@ export function reportTitle(date: DateString): string {
   const weekday = WEEKDAY_KO[parsed.getUTCDay()];
   return `${month}/${day}(${weekday}) 국채시장 동향`;
 }
+
+/** holidays 표에서 읽은 줄들 중 한 시장의 휴장일만 Set으로 만든다. (시장별로 따로 넘겨서 계산한다) */
+export function toHolidaySet(
+  rows: ReadonlyArray<{ market: string; holiday_date: DateString }>,
+  market: string,
+): HolidaySet {
+  return new Set(
+    rows.filter((row) => row.market === market).map((row) => row.holiday_date),
+  );
+}

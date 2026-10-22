@@ -1,5 +1,5 @@
 // 영업일 계산이 맞는지 확인하는 스크립트 (Plan 작업 2)
-// 실행: node --experimental-strip-types scripts/check-business-days.mjs
+// 실행: npm run check:calc
 import assert from "node:assert/strict";
 import {
   isBusinessDay,
@@ -8,6 +8,7 @@ import {
   previousBusinessDay,
   reportTitle,
   todayInKorea,
+  toHolidaySet,
 } from "../src/lib/calc/business-days.ts";
 
 // 확인용 가짜 휴장일 (실제 휴장일 자료는 holidays 표에서 온다)
@@ -70,6 +71,18 @@ check("잘못된 날짜는 오류를 낸다", () => {
 check("한국 날짜: UTC 15시는 한국 다음 날 0시", () => {
   assert.equal(todayInKorea(new Date("2026-10-21T15:00:00Z")), "2026-10-22");
   assert.equal(todayInKorea(new Date("2026-10-21T14:59:00Z")), "2026-10-21");
+});
+check("시장별 휴장일: 한국 휴장일은 미국 계산에 섞이지 않는다", () => {
+  const rows = [
+    { market: "kr", holiday_date: "2026-10-09" },
+    { market: "us", holiday_date: "2026-10-12" },
+  ];
+  const kr = toHolidaySet(rows, "kr");
+  const us = toHolidaySet(rows, "us");
+  assert.equal(isBusinessDay("2026-10-09", kr), false);
+  assert.equal(isBusinessDay("2026-10-09", us), true);
+  assert.equal(previousBusinessDay("2026-10-13", us), "2026-10-09");
+  assert.equal(previousBusinessDay("2026-10-13", kr), "2026-10-12");
 });
 
 console.log(`\n모두 통과: ${passed}개`);
