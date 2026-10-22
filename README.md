@@ -3,6 +3,8 @@
 국고채 장 마감 후 일일 보고서 **「M/D(요일) 국채시장 동향」**을 자동으로 만들어 주는 웹 서비스입니다.
 재정경제부 국고실에서 국채시장 동향을 챙기는 담당자가 매일 손으로 하던 일(금리 확인 → 변동폭 계산 → 표 작성 → 등락 원인 한 줄 작성)을 줄이기 위해 만든 **교육 실습용 프로젝트**입니다.
 
+- **접속 주소:** https://treasury-market-report.vercel.app (로그인이 필요합니다)
+- **GitHub 저장소:** https://github.com/noevhoes-sketch/treasury-market-report
 - 기획서: [PRD.md](PRD.md)
 - 개발 계획(목표·성공 기준·작업 목록): [PLAN.md](PLAN.md)
 
