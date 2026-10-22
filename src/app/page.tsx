@@ -1,10 +1,13 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { ROLE_LABELS } from "@/lib/db/types";
 import { getAccess } from "@/lib/auth/session";
 
 // 로그인한 사람에게만 보이는 첫 화면. 보고서 화면은 이후 작업(8번)에서 채운다.
 async function Shell() {
+  // 요청이 올 때마다 새로 그리는 화면이라는 것을 먼저 알린다(로그인 정보는 요청마다 다르다).
+  await connection();
   const access = await getAccess();
   if (!access.ok) redirect("/login");
 
