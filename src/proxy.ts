@@ -39,6 +39,7 @@ export async function proxy(request: NextRequest) {
 export const config = {
   // 로그인 화면, 로그인 확인 주소, 자동 실행 주소(자체 잠금 사용), 정적 파일은 제외한다.
   matcher: [
-    "/((?!login|auth/callback|auth/confirm|api/cron|_next/static|_next/image|favicon.ico).*)",
+    // 로고 같은 그림 파일(public 폴더)은 로그인 화면에도 보여야 하므로 막지 않는다. (그림 파일에는 보고서 내용이 없다)
+    "/((?!login|auth/callback|auth/confirm|api/cron|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

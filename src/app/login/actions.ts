@@ -2,12 +2,11 @@
 
 // Design Ref: §1.1 로그인 화면, §2.5 로그인 — 신청 → 담당자 승인 → 이메일만으로 로그인
 //
-// 이메일만으로 로그인하므로 메일 인증이 없다. 승인된 이메일을 아는 사람은 열람자로는 누구나 들어올 수 있다.
-// 그래서 담당자는 이메일에 더해 확인 코드(MANAGER_LOGIN_CODE)가 맞아야 들어온다.
+// 이메일만으로 로그인하므로 메일 인증이 없다. 승인된 이메일을 아는 사람은 누구나 그 사람으로 들어올 수 있다.
+// (담당자 이메일도 마찬가지다. 담당자로 등록된 이메일을 입력하면 담당자로 로그인된다)
 // (교육 실습용 임시 방식. 실제 도입 때는 사내 메신저 로그인 연동으로 바꾼다 — PRD 7번)
 import { redirect } from "next/navigation";
 import { decideLogin, normalizeEmail } from "@/lib/auth/access";
-import { verifyManagerCode } from "@/lib/auth/manager-code";
 import { createSessionClient, getAccess } from "@/lib/auth/session";
 import { createPendingRequest } from "@/lib/db/access-requests";
 import { lookupAllowedUser } from "@/lib/db/allowed-users";
@@ -27,8 +26,6 @@ const MESSAGES = {
   requested: "신청했어요. 담당자가 승인하면 같은 이메일로 로그인할 수 있어요.",
   alreadyApproved: "이미 승인된 이메일입니다. [로그인]을 눌러 주세요.",
   full: "대기 중인 신청이 많아 지금은 접수할 수 없어요. 담당자에게 문의해 주세요.",
-  needCode: "담당자는 확인 코드가 필요해요. 코드를 넣고 다시 로그인해 주세요.",
-  codeNotSet: "담당자 확인 코드가 서버에 설정되어 있지 않아 담당자 로그인을 막아 두었어요. 관리자에게 알려 주세요.",
   failed: "처리하지 못했어요. 잠시 뒤 다시 시도해 주세요.",
 } as const;
 
@@ -77,16 +74,6 @@ export async function submitLogin(
     }
 
     if (decision === "approved") {
-      // 담당자는 이메일에 더해 확인 코드가 맞아야 한다. 열람자는 코드를 넣어도 쓰이지 않는다.
-      if (row?.role === "manager") {
-        const secret = process.env.MANAGER_LOGIN_CODE;
-        if (!secret) return { message: MESSAGES.codeNotSet, canRequest: false };
-        if (!verifyManagerCode(formData.get("code"), secret)) {
-          // 코드를 계속 바꿔 가며 맞혀 보는 속도를 늦춘다.
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          return { message: MESSAGES.needCode, canRequest: false };
-        }
-      }
       approvedAndSignedIn = await startSession(email);
       // 세션을 만든 뒤에도 허용 목록으로 한 번 더 확인한다.
       if (approvedAndSignedIn && !(await getAccess()).ok) approvedAndSignedIn = false;

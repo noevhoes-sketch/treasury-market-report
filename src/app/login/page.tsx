@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { SiteLogo } from "@/app/site-logo";
 import { LoginForm } from "./login-form";
 
 export const metadata = { title: "로그인 · 국채시장 동향" };
@@ -12,27 +13,37 @@ async function ErrorNotice({
   const { error } = await searchParams;
   if (!error) return null;
   return (
-    <p role="alert" className="text-sm text-red-600">
-      로그인에 실패했습니다. 링크를 다시 받아 주세요.
+    <p role="alert" className="text-sm font-semibold text-red-700">
+      로그인에 실패했습니다. 다시 시도해 주세요.
     </p>
   );
 }
 
-// Design Ref: §1.1 로그인 화면 — 이메일 칸과 버튼, 안내 문구
+// Design Ref: §1.1 로그인 화면 — 맨 위 왼쪽 로고, 가운데 로그인 카드
 export default function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
   return (
-    <main className="flex flex-1 items-center justify-center bg-zinc-50 px-4 dark:bg-black">
-      <div className="flex w-full max-w-sm flex-col items-center gap-6 rounded-lg bg-white p-8 shadow-sm dark:bg-zinc-950">
-        <h1 className="text-2xl font-bold tracking-tight">국채시장 동향</h1>
-        <LoginForm />
-        <Suspense fallback={null}>
-          <ErrorNotice searchParams={searchParams} />
-        </Suspense>
-      </div>
-    </main>
+    <>
+      <header className="sticky top-0 z-40 border-b border-line bg-white">
+        <div className="mx-auto flex max-w-6xl items-center px-4 py-2">
+          <SiteLogo />
+        </div>
+      </header>
+      <main className="flex flex-1 items-center justify-center bg-surface px-4 py-12">
+        <div className="card flex w-full max-w-md flex-col gap-6 p-8 shadow-sm">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight">로그인</h1>
+            <p className="mt-1 text-sm text-muted">국채시장 동향 보고서를 보려면 로그인해 주세요.</p>
+          </div>
+          <LoginForm />
+          <Suspense fallback={null}>
+            <ErrorNotice searchParams={searchParams} />
+          </Suspense>
+        </div>
+      </main>
+    </>
   );
 }

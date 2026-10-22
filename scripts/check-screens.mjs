@@ -53,16 +53,23 @@ try {
 
   // 로그인 전
   let r = await get("/reports/2026-10-21", new Jar());
+  let html;
   ok("로그인 전 보고서 화면은 로그인 화면으로 보낸다", r.status >= 300 && r.status < 400 && r.headers.get("location").includes("/login"), `${r.status}`);
+  r = await get("/logo.svg", new Jar());
+  ok("로고 그림 파일은 로그인 전에도 열린다(로그인 화면에 보여야 한다)", r.status === 200 && (r.headers.get("content-type") ?? "").includes("svg"), `${r.status}`);
+  r = await get("/login", new Jar());
+  html = await r.text();
+  ok("로그인 화면 맨 위에 로고가 있고 누르면 홈(/)으로 간다", /<a[^>]*href="\/"[^>]*>[\s\S]*?logo\.svg/.test(html) && html.includes("재정경제부"));
   r = await get("/reports", new Jar());
   ok("로그인 전 목록도 막는다", r.status >= 300 && r.status < 400);
 
   // 담당자
   const manager = await login(users.manager);
   r = await get("/reports/2026-10-21", manager);
-  let html = await r.text();
+  html = await r.text();
   ok("담당자: 보고서 화면에 제목·금리·변동폭이 보인다", r.status === 200 && html.includes("10/21(수) 국채시장 동향") && html.includes("3.822") && html.includes("-1.8bp"));
   ok("담당자: 출처와 열별 기준일이 보인다", html.includes("금융투자협회") && html.includes("미국 재무부") && html.includes("전월말 9/30"));
+  ok("로그인 후 모든 화면 맨 위에도 로고가 있고 누르면 홈(/)으로 간다", /<header[^>]*sticky[\s\S]*?<a[^>]*href="\/"[^>]*>[\s\S]*?logo\.svg/.test(html));
   r = await get("/reports/2026-13-45", manager);
   html = await r.text();
   // 화면을 먼저 내보내기 시작한 뒤에 "없는 페이지"로 바뀌므로 상태 코드는 200이지만, 표 내용은 나가지 않는다.

@@ -12,7 +12,7 @@ import { approveLogin, rejectLogin, releaseHold } from "./actions";
 
 export const metadata = { title: "담당자 확인 · 국채시장 동향" };
 
-const buttonClass = "rounded border border-zinc-300 px-3 py-1 dark:border-zinc-700";
+const buttonClass = "btn";
 
 // Design Ref: §1.3 담당자 확인 화면 — 로그인 신청 승인, 전일 대비 변동이 큰 값 확인 (담당자만)
 async function Review() {
@@ -27,21 +27,21 @@ async function Review() {
   return (
     <>
       <AppHeader email={user.email} role={user.role} />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-4 py-6 sm:px-6">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-4 py-8">
         <section>
-          <h1 className="mb-2 text-2xl font-bold tracking-tight">담당자 확인</h1>
-          <h2 className="mb-2 text-lg font-semibold">로그인 신청</h2>
-          <p className="mb-3 text-sm text-zinc-500">
+          <h1 className="mb-4 text-3xl font-bold tracking-tight">담당자 확인</h1>
+          <h2 className="mb-2 text-xl font-bold">로그인 신청</h2>
+          <p className="mb-3 text-sm text-muted">
             승인하면 그 이메일만 입력해도 로그인돼요. 아는 사람의 이메일인지 확인한 뒤에 승인해 주세요.
           </p>
           {requests.length === 0 ? (
-            <p className="rounded-md bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-900">
+            <p className="panel text-sm">
               기다리는 신청이 없습니다.
             </p>
           ) : (
-            <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            <ul className="card divide-y divide-line overflow-hidden">
               {requests.map((request) => (
-                <li key={request.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                <li key={request.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
                   <span>
                     <strong>{request.email}</strong>
                   </span>
@@ -68,19 +68,19 @@ async function Review() {
         </section>
 
         <section>
-          <h2 className="mb-2 text-lg font-semibold">등락 원인 확인·확정</h2>
-          <p className="mb-3 text-sm text-zinc-500">
+          <h2 className="mb-2 text-xl font-bold">등락 원인 확인·확정</h2>
+          <p className="mb-3 text-sm text-muted">
             날짜를 눌러 원인 초안을 확인하고, 필요하면 고쳐서 확정해 주세요. 확정해야 열람자에게 원인이 보여요.
           </p>
-          <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+          <ul className="card divide-y divide-line overflow-hidden">
             {reports.map((item) => (
               <li key={item.date}>
                 <Link
                   href={`/review/${item.date}`}
-                  className="flex items-center justify-between px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="flex items-center justify-between px-5 py-4 text-sm hover:bg-surface"
                 >
                   <span>{reportTitle(item.date)}</span>
-                  <span className="text-zinc-500">{item.confirmed ? "확정 완료" : "확인 필요"}</span>
+                  <span className={item.confirmed ? "pill pill-ok" : "pill pill-warn"}>{item.confirmed ? "확정 완료" : "확인 필요"}</span>
                 </Link>
               </li>
             ))}
@@ -88,19 +88,19 @@ async function Review() {
         </section>
 
         <section>
-          <h2 className="mb-2 text-lg font-semibold">변동이 큰 값</h2>
-          <p className="mb-3 text-sm text-zinc-500">
+          <h2 className="mb-2 text-xl font-bold">변동이 큰 값</h2>
+          <p className="mb-3 text-sm text-muted">
             전일 대비 변동이 큰 값은 보고서에 &quot;확인 중&quot;으로 가려져 있어요. 값이 맞으면 [그대로 올리기]를 눌러 주세요.
             누가 언제 풀었는지 기록돼요.
           </p>
           {held.length === 0 ? (
-            <p className="rounded-md bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-900">
+            <p className="panel text-sm">
               확인할 값이 없습니다.
             </p>
           ) : (
-            <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            <ul className="card divide-y divide-line overflow-hidden">
               {held.map((item) => (
-                <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm">
+                <li key={item.id} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4 text-sm">
                   <span>
                     {reportTitle(item.rate_date)} · {INSTRUMENT_LABELS[item.instrument]} ·{" "}
                     <strong className="tabular-nums">{formatRate(item.rate)}</strong> ({item.source})

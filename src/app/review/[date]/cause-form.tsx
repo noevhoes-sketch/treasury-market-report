@@ -35,8 +35,8 @@ function Line({
   const count = Array.from(value).length;
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={name} className="text-sm font-medium">
-        {title} <span className="font-normal text-zinc-500">({label})</span>
+      <label htmlFor={name} className="text-sm font-bold">
+        {title} <span className="font-normal text-muted">({label})</span>
       </label>
       <textarea
         id={name}
@@ -44,14 +44,14 @@ function Line({
         rows={2}
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-base text-black dark:border-zinc-700 dark:bg-zinc-900 dark:text-white"
+        className="input"
       />
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span className={count > MAX ? "font-semibold text-red-600" : "text-zinc-500"}>
+        <span className={count > MAX ? "font-bold text-red-700" : "text-muted"}>
           {count}/{MAX}자 (공백 포함)
         </span>
         {url ? (
-          <a href={url} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline dark:text-blue-300">
+          <a href={url} target="_blank" rel="noopener noreferrer" className="link">
             근거 기사 보기
           </a>
         ) : null}
@@ -76,7 +76,7 @@ export function CauseForm({ date, kr, us, krLabel, usLabel, krUrl, usUrl }: Prop
           name="intent"
           value="save"
           disabled={pending}
-          className="rounded-md border border-zinc-300 px-4 py-2 disabled:opacity-60 dark:border-zinc-700"
+          className="btn"
         >
           저장
         </button>
@@ -85,7 +85,7 @@ export function CauseForm({ date, kr, us, krLabel, usLabel, krUrl, usUrl }: Prop
           name="intent"
           value="confirm"
           disabled={pending}
-          className="rounded-md bg-black px-4 py-2 text-white disabled:opacity-60 dark:bg-white dark:text-black"
+          className="btn btn-primary"
         >
           확정
         </button>
@@ -93,7 +93,7 @@ export function CauseForm({ date, kr, us, krLabel, usLabel, krUrl, usUrl }: Prop
       {state.message ? (
         <p
           role={state.kind === "error" ? "alert" : "status"}
-          className={state.kind === "error" ? "text-sm text-red-600" : "text-sm text-green-700 dark:text-green-400"}
+          className={state.kind === "error" ? "text-sm font-semibold text-red-700" : "text-sm font-semibold text-[#1b6b34]"}
         >
           {state.message}
         </p>

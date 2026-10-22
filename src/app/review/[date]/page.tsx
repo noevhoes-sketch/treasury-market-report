@@ -42,31 +42,31 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
   return (
     <>
       <AppHeader email={user.email} role={user.role} />
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-5 px-4 py-6 sm:px-6">
+      <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 px-4 py-8">
         <div>
-          <Link href="/review" className="text-sm text-zinc-500 hover:underline">
+          <Link href="/review" className="text-sm text-muted hover:underline">
             ← 담당자 확인
           </Link>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight">{reportTitle(date)}</h1>
-          <p className="text-sm text-zinc-500">
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{reportTitle(date)}</h1>
+          <p className="text-sm text-muted">
             등락 원인 문장 확인·확정 ·{" "}
-            <Link href={`/reports/${date}`} className="underline">
+            <Link href={`/reports/${date}`} className="link">
               보고서 보기
             </Link>
           </p>
         </div>
 
         {stale ? (
-          <p role="status" className="rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:bg-amber-950 dark:text-amber-200">
+          <p role="status" className="rounded-2xl bg-[#fff4e5] px-5 py-4 text-sm text-[#8a4b00]">
             금리 숫자가 바뀌어 확정이 풀렸어요. 문장을 다시 확인하고 저장·확정해 주세요.
           </p>
         ) : null}
         {confirmed ? (
-          <p role="status" className="rounded-md bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950 dark:text-green-200">
+          <p role="status" className="rounded-2xl bg-[#e6f4ea] px-5 py-4 text-sm text-[#1b6b34]">
             확정되었습니다 ({kstDateTime(report!.confirmed_at!)}). 문장을 고쳐 저장하면 확정이 풀려요.
           </p>
         ) : blocker ? (
-          <p className="rounded-md bg-zinc-100 px-4 py-3 text-sm dark:bg-zinc-900">지금은 확정할 수 없어요: {blocker}</p>
+          <p className="panel text-sm">지금은 확정할 수 없어요: {blocker}</p>
         ) : null}
 
         <CauseForm
@@ -79,7 +79,7 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
           usUrl={isTrustedArticleUrl(report?.source_url_us) ? report!.source_url_us : null}
         />
 
-        <section className="text-sm text-zinc-500">
+        <section className="text-sm text-muted">
           <p>
             금리 표 기준: 국고채 3년 {rows[0].today.text}
             {rows[0].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${rows[0].changeFromPreviousDay.text})` : ""}, 미국 10년{" "}

@@ -17,20 +17,20 @@ async function List() {
   return (
     <>
       <AppHeader email={user.email} role={user.role} />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6">
-        <h1 className="mb-4 text-2xl font-bold tracking-tight">지난 보고서</h1>
+      <main className="mx-auto w-full max-w-4xl flex-1 px-4 py-8">
+        <h1 className="mb-5 text-3xl font-bold tracking-tight">지난 보고서</h1>
         {items.length === 0 ? (
-          <p className="text-sm text-zinc-500">아직 보고서가 없습니다.</p>
+          <p className="panel text-sm">아직 보고서가 없습니다.</p>
         ) : (
-          <ul className="divide-y divide-zinc-200 rounded-md border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+          <ul className="card divide-y divide-line overflow-hidden">
             {items.map((item) => (
               <li key={item.date}>
                 <Link
                   href={`/reports/${item.date}`}
-                  className="flex items-center justify-between px-4 py-3 text-sm hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                  className="flex items-center justify-between px-5 py-4 text-base hover:bg-surface"
                 >
                   <span>{reportTitle(item.date)}</span>
-                  <span className="text-zinc-500">
+                  <span className={item.confirmed ? "pill pill-ok" : item.tableStatus === "waiting" ? "pill pill-wait" : "pill pill-warn"}>
                     {item.confirmed ? "확정 완료" : item.tableStatus === "waiting" ? "대기 중" : "표 완료"}
                   </span>
                 </Link>
