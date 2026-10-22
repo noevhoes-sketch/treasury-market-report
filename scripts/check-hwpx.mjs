@@ -36,7 +36,7 @@ ok("첫 파일이 mimetype이고 압축하지 않았다", [...files.keys()][0] =
 ok("mimetype 내용", decoder.decode(files.get("mimetype").data) === "application/hwp+zip");
 const section = decoder.decode(files.get("Contents/section0.xml").data);
 ok("제목이 들어있다", section.includes("10/21(수) 국채시장 동향"));
-ok("금리 3.822와 전일비가 표에 들어있다", section.includes("3.822") && section.includes("-1.8bp"));
+ok("금리 3.822와 전일비가 표에 들어있다", section.includes("3.822") && section.includes("△1.8bp") && !section.includes("-1.8bp"));
 ok("못 받은 칸은 미수집", section.includes("미수집"));
 ok("특수문자가 안전하게 바뀐다", section.includes("금리 &lt;하락&gt; &amp; &quot;안도&quot;") && !section.includes("<하락>"));
 ok("공문 양식: 부서·□ 소제목·○ 항목·※ 출처·날짜가 있다", ["재정경제부 국고실","□ 금리 현황","□ 등락 원인","○ 국고채:","○ 미국 금리:","※ 출처:","2026. 10. 21.(수)"].every((x)=>section.includes(x)));

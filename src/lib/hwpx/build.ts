@@ -3,7 +3,7 @@
 // 한글 프로그램으로 열어 보는 확인은 사람이 해야 한다(자동 확인은 구조·내용까지만 한다).
 
 import { reportTitle } from "../calc/business-days.ts";
-import type { TableRow } from "../calc/rates-format.ts";
+import { displayChange, type TableRow } from "../calc/rates-format.ts";
 import { buildZip } from "./zip.ts";
 import { HEADER_XML, SEC_OPEN, SEC_PR_RUN, PACKAGE_OPEN, VERSION_XML, CONTAINER_XML, MANIFEST_XML, SETTINGS_XML } from "./template.ts";
 
@@ -80,9 +80,9 @@ function table(rows: readonly TableRow[]): string {
     row.previousMonthEnd.text,
     row.previousDay.text,
     row.today.text,
-    row.changeFromPreviousDay.text,
-    row.changeFromMonthEnd.text,
-    row.changeFromYearEnd.text,
+    displayChange(row.changeFromPreviousDay.text),
+    displayChange(row.changeFromMonthEnd.text),
+    displayChange(row.changeFromYearEnd.text),
   ]);
   const all = [header, ...body];
   const trs = all.map((line, r) => `<hp:tr>${line.map((text, c) => cell(text, c, r)).join("")}</hp:tr>`).join("");

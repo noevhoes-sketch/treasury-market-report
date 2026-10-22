@@ -67,7 +67,7 @@ try {
   const manager = await login(users.manager);
   r = await get("/reports/2026-10-21", manager);
   html = await r.text();
-  ok("담당자: 보고서 화면에 제목·금리·변동폭이 보인다", r.status === 200 && html.includes("10/21(수) 국채시장 동향") && html.includes("3.822") && html.includes("-1.8bp"));
+  ok("담당자: 보고서 화면에 제목·금리·변동폭이 보인다", r.status === 200 && html.includes("10/21(수) 국채시장 동향") && html.includes("3.822") && html.includes("△1.8bp"));
   ok("금리 추이 그래프(선 3개, 전월말 점선 기준)가 보인다", html.includes("국고채 금리 추이") && (html.match(/<path d=\"M/g) ?? []).length === 3 && html.includes("전월말 9/30"));
   ok("불러오는 동안 보이는 자리 표시(스켈레톤)가 화면에 함께 실려 온다", html.includes("불러오는 중입니다") && html.includes("animate-pulse"));
   ok("담당자: 출처와 열별 기준일이 보인다", html.includes("금융투자협회") && html.includes("미국 재무부") && html.includes("전월말 9/30"));

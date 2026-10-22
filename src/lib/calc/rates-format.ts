@@ -92,6 +92,15 @@ export function changeInBp(
   return diffThousandths / 10;
 }
 
+/**
+ * 변동폭을 보여 줄 때의 표기(공문서 관례): 상승은 "+1.8bp", 하락은 마이너스 대신 빈 세모 "△1.8bp".
+ * 화면과 한글 파일에서만 쓴다. 문장 검사나 계산은 원래 글자("-1.8bp")를 그대로 쓴다.
+ * "미수집", "확인 중", "0.0bp"처럼 음수가 아닌 글자는 그대로 돌려준다.
+ */
+export function displayChange(text: string): string {
+  return /^-\d/.test(text) ? `△${text.slice(1)}` : text;
+}
+
 function rateCell(input: RateInput): Cell {
   if (input === null) return { text: MISSING_TEXT, source: null, asOf: null };
   if (input.held) {

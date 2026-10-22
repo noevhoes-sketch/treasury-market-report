@@ -5,7 +5,7 @@ import { connection } from "next/server";
 import { PageSkeleton } from "@/app/page-skeleton";
 import { AppHeader } from "@/app/app-header";
 import { isBusinessDay, reportTitle, todayInKorea, toHolidaySet } from "@/lib/calc/business-days";
-import { buildReportTable, MISSING_TEXT } from "@/lib/calc/rates-format";
+import { buildReportTable, displayChange, MISSING_TEXT } from "@/lib/calc/rates-format";
 import { pickReportInputs } from "@/lib/calc/report-table";
 import { requireManager } from "@/lib/auth/guard";
 import { isTrustedArticleUrl } from "@/lib/cause/infomax";
@@ -102,9 +102,9 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
         <section className="text-sm text-muted">
           <p>
             금리 표 기준: 국고채 3년 {rows[0].today.text}
-            {rows[0].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${rows[0].changeFromPreviousDay.text})` : ""}, 미국 10년{" "}
+            {rows[0].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${displayChange(rows[0].changeFromPreviousDay.text)})` : ""}, 미국 10년{" "}
             {rows[3].today.text}
-            {rows[3].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${rows[3].changeFromPreviousDay.text})` : ""}.
+            {rows[3].changeFromPreviousDay.text !== "미수집" ? `(전일비 ${displayChange(rows[3].changeFromPreviousDay.text)})` : ""}.
             문장에는 표에 있는 숫자만 쓸 수 있고, 전망·의견 표현은 쓸 수 없어요.
           </p>
         </section>

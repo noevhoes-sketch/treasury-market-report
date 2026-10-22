@@ -7,7 +7,7 @@ import {
   type ReportRow,
   type Role,
 } from "@/lib/db/types";
-import { HELD_TEXT, MISSING_TEXT, type Cell, type TableRow } from "@/lib/calc/rates-format";
+import { HELD_TEXT, MISSING_TEXT, displayChange, type Cell, type TableRow } from "@/lib/calc/rates-format";
 import { todayInKorea } from "@/lib/calc/business-days";
 import { reportTitle } from "@/lib/calc/business-days";
 import { isTrustedArticleUrl } from "@/lib/cause/infomax";
@@ -123,6 +123,8 @@ export function ReportView(props: Props) {
   const confirmed = report?.confirmed_at != null;
   // 오늘(또는 앞으로의) 국고채 값이 아직 안 올라왔으면 "미수집" 대신 "대기 중"으로 보여준다. 이미 지난 날짜의 빈 칸은 그대로 "미수집".
   const waitingToday = !krDone && date >= todayInKorea();
+  // 변동폭 칸은 하락을 마이너스 대신 △로 보여 준다.
+  const shown = (cell: Cell): Cell => ({ ...cell, text: displayChange(cell.text) });
   const waiting = (cell: Cell): Cell => (waitingToday && cell.text === MISSING_TEXT ? { ...cell, text: WAITING_TEXT } : cell);
 
   return (
@@ -201,9 +203,9 @@ export function ReportView(props: Props) {
                       <DataCell cell={row.previousMonthEnd} />
                       <DataCell cell={row.previousDay} />
                       <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.today) : row.today} strong />
-                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.changeFromPreviousDay) : row.changeFromPreviousDay} strong />
-                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.changeFromMonthEnd) : row.changeFromMonthEnd} />
-                      <DataCell cell={row.instrument.startsWith("kr") ? waiting(row.changeFromYearEnd) : row.changeFromYearEnd} />
+                      <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromPreviousDay) : row.changeFromPreviousDay)} strong />
+                      <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromMonthEnd) : row.changeFromMonthEnd)} />
+                      <DataCell cell={shown(row.instrument.startsWith("kr") ? waiting(row.changeFromYearEnd) : row.changeFromYearEnd)} />
                     </tr>
                   ))}
                 </tbody>

@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import {
   buildReportTable,
+  displayChange,
   changeInBp,
   formatChange,
   formatRate,
@@ -112,6 +113,17 @@ check("표: 미국 줄은 최신 마감일(기준일)이 한국과 달라도 그
   })[3];
   assert.equal(row.today.asOf, "2026-10-21");
   assert.equal(row.changeFromPreviousDay.text, "+5.0bp");
+});
+
+check("화면 표기: 상승은 +, 하락은 마이너스 대신 △, 그 밖의 글자는 그대로", () => {
+  assert.equal(displayChange("+1.8bp"), "+1.8bp");
+  assert.equal(displayChange("-1.8bp"), "△1.8bp");
+  assert.equal(displayChange("-17.1bp"), "△17.1bp");
+  assert.equal(displayChange("0.0bp"), "0.0bp");
+  assert.equal(displayChange("미수집"), "미수집");
+  assert.equal(displayChange("확인 중"), "확인 중");
+  // 계산·문장 검사에 쓰는 원래 표기는 바뀌지 않는다
+  assert.equal(formatChange(-1.8), "-1.8bp");
 });
 
 console.log(`\n모두 통과: ${passed}개`);
