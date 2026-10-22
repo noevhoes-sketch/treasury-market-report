@@ -10,7 +10,7 @@ import { createServiceClient } from "./server";
 export const lookupAllowedUser: AllowedUserLookup = async (email) => {
   const { data, error } = await createServiceClient()
     .from("allowed_users")
-    .select("id, email, role")
+    .select("id, email, role, status")
     .eq("email", email)
     .maybeSingle<AllowedUserRow>();
   // 조회가 실패하면 "허용"으로 넘어가지 않도록 오류를 그대로 던진다.

@@ -106,11 +106,17 @@ export type ReportRow = {
   updated_at: string;
 };
 
+/** 로그인 신청 상태: 승인 대기 → 승인 또는 거절 */
+export const ACCESS_STATUSES = ["pending", "approved", "rejected"] as const;
+export type AccessStatus = (typeof ACCESS_STATUSES)[number];
+
 /** 허용 목록 한 줄 (표: allowed_users) */
 export type AllowedUserRow = {
   id: number;
   email: string;
   role: Role;
+  /** 승인된 사람만 로그인할 수 있다 */
+  status: AccessStatus;
 };
 
 /** 휴장일 한 줄 (표: holidays) */

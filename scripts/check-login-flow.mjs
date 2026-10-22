@@ -19,7 +19,7 @@ async function link(email){ const r = await svc.auth.admin.generateLink({type:"m
 // 1. 로그인 전
 let jar = new Jar();
 let r = await get("/", jar); ok("로그인 전 첫 화면은 로그인 화면으로 보낸다", r.status>=300 && r.status<400 && loc(r).includes("/login"), `${r.status}`);
-r = await get("/login", jar); const html = await r.text(); ok("로그인 화면이 열린다", r.status===200 && html.includes("로그인 링크 받기") && html.includes("국채시장 동향"));
+r = await get("/login", jar); const html = await r.text(); ok("로그인 화면이 열린다", r.status===200 && html.includes("등록을 신청") && html.includes("국채시장 동향"));
 r = await get("/auth/confirm?token_hash=bad&type=email", jar); ok("엉터리 링크는 실패 처리", loc(r)?.includes("/login?error=1"), loc(r));
 r = await get("/auth/callback", jar); ok("code 없는 callback은 실패 처리", loc(r)?.includes("/login?error=1"));
 
@@ -27,14 +27,14 @@ r = await get("/auth/callback", jar); ok("code 없는 callback은 실패 처리"
 jar = new Jar();
 r = await get(`/auth/confirm?token_hash=${await link(users.manager)}&type=email`, jar);
 ok("허용된 이메일은 링크로 로그인된다", r.status>=300 && r.status<400 && new URL(loc(r),BASE).pathname==="/", `${r.status} → ${loc(r)}`);
-r = await get("/", jar); let page = await r.text();
+r = await get("/reports/2026-10-21", jar); let page = await r.text();
 ok("로그인 후 첫 화면에 이메일과 역할이 보인다", r.status===200 && page.includes(users.manager) && page.includes("담당자"));
 
 // 3. 허용 목록에서 지우면 세션이 있어도 다음 요청부터 막힌다
 await svc.from("allowed_users").delete().eq("email", users.manager);
 r = await get("/", jar); { const body = await r.text(); ok("목록에서 지운 사람은 로그인 세션이 있어도 내용을 볼 수 없다(이동 신호만 받는다)", !body.includes(users.manager) && !/담당자|열람자/.test(body) && /NEXT_REDIRECT|login/.test(body), `${r.status}`); }
 await svc.from("allowed_users").insert({email:users.manager, role:"viewer"});
-r = await get("/", jar); page = await r.text(); ok("역할은 허용 목록에서만 읽는다(담당자→열람자로 바꾸면 바로 반영)", r.status===200 && page.includes("열람자"));
+r = await get("/reports/2026-10-21", jar); page = await r.text(); ok("역할은 허용 목록에서만 읽는다(담당자→열람자로 바꾸면 바로 반영)", r.status===200 && page.includes("열람자"));
 
 // 4. 로그아웃
 r = await get("/auth/signout",jar,{method:"POST"}); ok("로그아웃은 로그인 화면으로", r.status===303 && loc(r).endsWith("/login"), `${r.status}`);
@@ -45,6 +45,19 @@ jar = new Jar();
 r = await get(`/auth/confirm?token_hash=${await link(users.stranger)}&type=email`, jar);
 ok("허용 목록에 없는 사람은 링크가 맞아도 로그인 실패", loc(r)?.includes("/login?error=1"), loc(r));
 r = await get("/", jar); ok("그 사람은 세션이 남지 않아 첫 화면도 막힌다", r.status>=300 && r.status<400 && loc(r).includes("/login"));
+
+// 5-2. 승인 대기·거절된 사람
+for (const status of ["pending", "rejected"]) {
+  const email = `e2e-${status}@example.com`;
+  await svc.auth.admin.createUser({ email, email_confirm: true });
+  await svc.from("allowed_users").insert({ email, role: "viewer", status });
+  jar = new Jar();
+  r = await get(`/auth/confirm?token_hash=${await link(email)}&type=email`, jar);
+  ok(`승인 상태가 ${status}인 사람은 링크가 맞아도 로그인 실패`, loc(r)?.includes("/login?error=1"), loc(r));
+  await svc.from("allowed_users").delete().eq("email", email);
+  const found = (await svc.auth.admin.listUsers()).data.users.find((u) => u.email === email);
+  if (found) await svc.auth.admin.deleteUser(found.id);
+}
 
 // 6. 돌아갈 주소 조작
 jar = new Jar();

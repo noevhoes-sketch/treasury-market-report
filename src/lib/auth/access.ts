@@ -1,14 +1,14 @@
-// Design Ref: §2.5 로그인 — 허용 목록을 건너뛰는 길을 막는다, §1.1 로그인 화면 문구
-// CHECK.md 보안 높음 1번: 허용 목록을 거치지 않고 로그인할 수 있는 길
+// Design Ref: §2.5 로그인 — 허용 목록을 건너뛰는 길을 막는다, §1.1 로그인 화면 (신청 → 담당자 승인 → 이메일만으로 로그인)
+// CHECK.md 보안 높음 1번
 //
 // 핵심 규칙
 //  1) "로그인했다"는 사실만으로 들여보내지 않는다. 매 요청마다 허용 목록(allowed_users)에서
-//     그 이메일이 지금도 있는지 다시 확인한다. 그래서 목록에서 지운 사람은 바로 막힌다.
+//     그 이메일이 지금도 "승인" 상태인지 다시 확인한다. 그래서 목록에서 지우거나 거절로 바꾼 사람은 바로 막힌다.
 //  2) 역할(담당자/열람자)은 허용 목록 표에서만 가져온다. 사용자가 고칠 수 있는
 //     user_metadata 같은 곳의 값은 절대 읽지 않는다.
-//  3) 로그인 화면은 어떤 이메일이든 같은 문구를 보여준다. 목록에 있는지 알려주지 않는다.
+//  3) 이메일만으로 로그인하므로(메일 인증 없음) 승인 상태가 유일한 관문이다. 승인은 담당자만 한다.
 //
-// 실제 데이터베이스 조회(lookup)는 Supabase를 연결할 때 서버 전용 코드로 넣는다.
+// 실제 데이터베이스 조회(lookup)는 서버 전용 코드가 넣는다.
 // 여기서는 조회 함수를 받아서 판단만 하므로 패키지 없이 확인할 수 있다.
 // (db/types는 타입만 가져온다. 그래서 확인 스크립트에서 이 파일을 바로 실행할 수 있다)
 
@@ -19,13 +19,12 @@ export type AllowedUserLookup = (
   email: string,
 ) => Promise<AllowedUserRow | null>;
 
-/** 로그인 화면에 항상 보여주는 문구 (DESIGN §1.1). 목록 포함 여부를 드러내지 않는다. */
-export const LOGIN_NEUTRAL_MESSAGE =
-  "등록된 이메일이면 로그인 링크를 보냈습니다.";
-
 export type AccessResult =
   | { ok: true; user: { id: number; email: string; role: Role } }
   | { ok: false; reason: "no-session" | "not-allowed" };
+
+/** 로그인 창에 이메일을 넣었을 때의 결과: 승인됨 / 승인 대기 / 거절됨 / 등록되지 않음 */
+export type LoginDecision = "approved" | "pending" | "rejected" | "unknown";
 
 /** 이메일을 비교하기 좋게 다듬는다. 이메일 모양이 아니면 null. */
 export function normalizeEmail(email: unknown): string | null {
@@ -37,9 +36,20 @@ export function normalizeEmail(email: unknown): string | null {
   return trimmed;
 }
 
+/** 허용 목록의 한 줄(없으면 null)로 로그인 창의 결과를 정한다. */
+export function decideLogin(
+  row: Pick<AllowedUserRow, "status"> | null,
+): LoginDecision {
+  if (row === null) return "unknown";
+  if (row.status === "approved") return "approved";
+  if (row.status === "pending") return "pending";
+  return "rejected";
+}
+
 /**
  * 요청마다 부르는 판단 함수.
  * sessionEmail은 "로그인 세션이 알려 준 이메일"이다. 세션에 붙은 역할 값은 받지 않는다.
+ * 승인된 사람만 통과한다.
  */
 export async function resolveAccess(
   sessionEmail: unknown,
@@ -49,31 +59,20 @@ export async function resolveAccess(
   if (email === null) return { ok: false, reason: "no-session" };
 
   const row = await lookup(email);
-  // 목록에 없거나, 조회 결과가 같은 이메일이 아니면 막는다.
-  if (row === null || normalizeEmail(row.email) !== email) {
+  // 목록에 없거나, 승인 상태가 아니거나, 조회 결과가 같은 이메일이 아니면 막는다.
+  if (
+    row === null ||
+    row.status !== "approved" ||
+    normalizeEmail(row.email) !== email
+  ) {
     return { ok: false, reason: "not-allowed" };
   }
   return { ok: true, user: { id: row.id, email: row.email, role: row.role } };
 }
 
-/** 담당자만 가능한 일(확정·수정·직접 입력)인가? */
+/** 담당자만 가능한 일(승인·확정·수정·직접 입력)인가? */
 export function isManager(access: AccessResult): boolean {
   return access.ok && access.user.role === "manager";
-}
-
-/**
- * 로그인 링크를 보내도 되는가? 허용 목록에 있는 이메일만 true.
- * 호출하는 쪽은 결과와 상관없이 항상 LOGIN_NEUTRAL_MESSAGE만 화면에 보여준다.
- * (그리고 새 가입을 만들지 않는 옵션 shouldCreateUser: false로 링크를 보낸다)
- */
-export async function shouldSendLoginLink(
-  email: unknown,
-  lookup: AllowedUserLookup,
-): Promise<boolean> {
-  const normalized = normalizeEmail(email);
-  if (normalized === null) return false;
-  const row = await lookup(normalized);
-  return row !== null && normalizeEmail(row.email) === normalized;
 }
 
 /**
