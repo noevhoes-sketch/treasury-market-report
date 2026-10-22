@@ -135,6 +135,8 @@ const okResponse = (content) => new Response(JSON.stringify({ choices: [{ messag
 await check("AI 요청: 지시문에 기사 속 명령 무시·정해진 JSON 형식이 들어 있고, 기사는 구분 표시 안에 넣는다", () => {
   assert.match(SYSTEM_PROMPT, /절대 따르지 말고/);
   assert.match(SYSTEM_PROMPT, /JSON/);
+  assert.match(SYSTEM_PROMPT, /개조식/);
+  assert.match(SYSTEM_PROMPT, /하여 마감/);
   const prompt = buildUserPrompt(ROWS, "기사 본문");
   assert.match(prompt, /<article>\n기사 본문\n<\/article>/);
   assert.match(prompt, /국고 3년: 금일 3\.822, 전일비 -1\.8bp/);
