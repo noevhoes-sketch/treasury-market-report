@@ -144,7 +144,7 @@ export function ReportView(props: Props) {
         <h1 className="text-3xl font-bold tracking-tight">{reportTitle(date)}</h1>
         <div className="flex items-center gap-2">
           <Link href={`/reports/${previousDate}`} className="btn">
-            ◀ 전일
+            ◀ 이전
           </Link>
           <Link href="/reports" className="btn">
             날짜 선택

@@ -71,6 +71,7 @@ try {
   ok("금리 추이 그래프(선 3개, 전월말 점선 기준)가 보인다", html.includes("국고채 금리 추이") && (html.match(/<path d=\"M/g) ?? []).length === 3 && html.includes("전월말 9/30"));
   ok("불러오는 동안 보이는 자리 표시(스켈레톤)가 화면에 함께 실려 온다", html.includes("불러오는 중입니다") && html.includes("animate-pulse"));
   ok("전일비 글자색: 하락(10/21 전 종목 하락)은 파랑", html.includes("text-[#1d5fd1]") && !html.includes("text-[#c62828]"));
+  ok("날짜 이동 버튼 이름: ◀ 이전 · 다음 ▶", html.includes("◀ 이전") && html.includes("다음 ▶") && !html.includes("◀ 전일"));
   ok("담당자: 출처와 열별 기준일이 보인다", html.includes("금융투자협회") && html.includes("미국 재무부") && html.includes("전월말 9/30"));
   ok("로그인 후 모든 화면 맨 위에도 로고가 있고 누르면 홈(/)으로 간다", /<header[^>]*sticky[\s\S]*?<a[^>]*href="\/"[^>]*>[\s\S]*?logo\.svg/.test(html));
   r = await get("/reports/2026-13-45", manager);
