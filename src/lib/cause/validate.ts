@@ -20,6 +20,8 @@ const DOWN_WORDS = /하락|내렸|내린|내려|내리|떨어|급락|하향/;
 const GENERIC_WORDS = new Set([
   "국고채", "국채", "금리", "하락", "상승", "마감", "시장", "전일", "대비", "미국", "미국채",
   "국고", "채권", "속에", "영향", "가운데", "으로", "에서", "했다", "하며", "되며",
+  // 개조식 문체에서 늘 쓰는 말(기사에 같은 꼴로 없어도 되는 말)
+  "출발", "전환", "따라", "따른", "인식", "등으로", "하여", "하였으나", "했으나",
 ]);
 
 /** 일반적인 말(또는 그 말에 조사·어미가 붙은 꼴, 예: "금리가", "하락했다")인가? */
@@ -122,8 +124,11 @@ export function validateCause(
       (text.match(/[가-힣A-Za-z0-9]{2,}/g) ?? []).filter((token) => !isGeneric(token) && !/^\d+$/.test(token)),
     );
     let found = 0;
-    for (const token of tokens) if (articleText.includes(token)) found += 1;
-    if (found < 2) return { ok: false, reason: "기사에서 근거를 찾지 못함" };
+    // 조사·어미가 달라질 수 있어서(예: 금통위를 / 금통위) 끝의 1~2글자를 뺀 앞부분이 기사에 있어도 찾은 것으로 센다.
+    const stemOf = (token: string) => (token.length >= 4 ? token.slice(0, -2) : token.length === 3 ? token.slice(0, -1) : token);
+    for (const token of tokens) if (articleText.includes(token) || articleText.includes(stemOf(token))) found += 1;
+    // 둘 이상이어야 하고, 문장의 핵심 낱말 중 절반 이상이 기사에 있어야 한다(기사에 흔한 말 두어 개로 지어낸 이유가 통과하지 못하게).
+    if (found < Math.max(2, Math.ceil(tokens.size / 2))) return { ok: false, reason: "기사에서 근거를 찾지 못함" };
   }
 
   return { ok: true, text };

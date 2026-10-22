@@ -71,6 +71,8 @@ export async function submitLogin(
       // 세션을 만든 뒤에도 허용 목록으로 한 번 더 확인한다.
       if (approvedAndSignedIn && !(await getAccess()).ok) approvedAndSignedIn = false;
       if (!approvedAndSignedIn) return { message: LOGIN_MESSAGES.failed, canRequest: false };
+      // 마지막 로그인 시각을 남긴다(누가 언제 들어왔는지 추적할 수 있게).
+      await client.from("allowed_users").update({ last_login_at: new Date().toISOString() }).eq("email", email);
     } else {
       // 승인되지 않은 시도: 한도를 넘었으면 막고, 아니면 한 번 기록한다.
       if (await isRateLimited(client, email, ip)) return { message: LOGIN_MESSAGES.tooMany, canRequest: false };

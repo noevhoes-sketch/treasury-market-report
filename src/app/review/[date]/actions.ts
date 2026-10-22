@@ -38,6 +38,7 @@ export async function submitCauses(
       date,
       { kr: text(formData.get("kr")), us: text(formData.get("us")) },
       rows,
+      user.id,
     );
     if (!saved.ok) return { kind: "error", message: saved.reason };
 

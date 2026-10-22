@@ -38,7 +38,7 @@ function usDateOk(usDate: string, reportDate: string): boolean {
  *  - 국고채는 보고서 날짜로, 미국은 입력한 미국 기준일로 저장한다
  *  - 값이 바뀌면 DB가 이미 한 확정을 풀어 준다
  */
-export async function saveManualRates(client: SupabaseClient, input: ManualInput): Promise<ManualResult> {
+export async function saveManualRates(client: SupabaseClient, input: ManualInput, enteredBy?: number): Promise<ManualResult> {
   if (!isValidDateString(input.date)) return { ok: false, reason: "날짜가 올바르지 않습니다." };
 
   const rows: {
@@ -51,6 +51,7 @@ export async function saveManualRates(client: SupabaseClient, input: ManualInput
     held: false;
     held_released_by: null;
     held_released_at: null;
+    entered_by: number | null;
   }[] = [];
 
   for (const instrument of Object.keys(NAMES) as Instrument[]) {
@@ -77,6 +78,7 @@ export async function saveManualRates(client: SupabaseClient, input: ManualInput
       held: false,
       held_released_by: null,
       held_released_at: null,
+      entered_by: enteredBy ?? null,
     });
   }
 

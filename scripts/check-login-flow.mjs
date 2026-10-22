@@ -13,7 +13,7 @@ const ok = (name, cond, extra="") => console.log(`${cond?"✅":"❌"} ${name}${e
 const users = {manager:"e2e-manager@example.com", stranger:"e2e-stranger@example.com"};
 try {
 for (const e of Object.values(users)) { const r = await svc.auth.admin.createUser({email:e,email_confirm:true}); if (r.error && !/already/i.test(r.error.message)) console.log("createUser 오류", r.error.message); }
-await svc.from("allowed_users").insert({email:users.manager, role:"manager"});
+await svc.from("allowed_users").insert({email:users.manager, role:"manager", status:"approved"});
 
 async function link(email){ const r = await svc.auth.admin.generateLink({type:"magiclink",email}); return r.data.properties.hashed_token; }
 
@@ -34,7 +34,7 @@ ok("로그인 후 첫 화면에 이메일과 역할이 보인다", r.status===20
 // 3. 허용 목록에서 지우면 세션이 있어도 다음 요청부터 막힌다
 await svc.from("allowed_users").delete().eq("email", users.manager);
 r = await get("/", jar); { const body = await r.text(); ok("목록에서 지운 사람은 로그인 세션이 있어도 내용을 볼 수 없다(이동 신호만 받는다)", !body.includes(users.manager) && !/담당자|열람자/.test(body) && /NEXT_REDIRECT|login/.test(body), `${r.status}`); }
-await svc.from("allowed_users").insert({email:users.manager, role:"viewer"});
+await svc.from("allowed_users").insert({email:users.manager, role:"viewer", status:"approved"});
 r = await get("/reports/2026-10-21", jar); page = await r.text(); ok("역할은 허용 목록에서만 읽는다(담당자→열람자로 바꾸면 바로 반영)", r.status===200 && page.includes("열람자"));
 
 // 4. 로그아웃

@@ -127,7 +127,7 @@ await check("받기 실패(상태 오류)는 오류", async () => {
 });
 await check("저장 모양: 출처 금융투자협회, 기준일은 조회한 날짜", () => {
   const rows = kofiaYieldsToRates("2026-10-21", [{ instrument: "kr3", rate: 3.822 }]);
-  assert.deepEqual(rows, [{ rate_date: "2026-10-21", instrument: "kr3", rate: 3.822, source: "금융투자협회", as_of_date: "2026-10-21" }]);
+  assert.deepEqual(rows, [{ rate_date: "2026-10-21", instrument: "kr3", rate: 3.822, source: "금융투자협회", as_of_date: "2026-10-21", is_manual: false }]);
 });
 
 function fakeClient() {

@@ -18,7 +18,7 @@ export async function submitManualRates(
   _previous: RatesFormState,
   formData: FormData,
 ): Promise<RatesFormState> {
-  await requireManager();
+  const user = await requireManager();
 
   const date = text(formData.get("date"));
   if (!isValidDateString(date)) return { kind: "error", message: "날짜가 올바르지 않습니다." };
@@ -33,7 +33,7 @@ export async function submitManualRates(
         us10: text(formData.get("us10")),
       },
       usDate: text(formData.get("usDate")),
-    });
+    }, user.id);
     if (!result.ok) return { kind: "error", message: result.reason };
 
     revalidatePath(`/review/${date}`);

@@ -21,6 +21,14 @@ export async function createSessionClient() {
   }
   const cookieStore = await cookies();
   return createServerClient(url, anonKey, {
+  cookieOptions: {
+    // 이 앱은 브라우저에서 Supabase를 직접 쓰지 않으므로 자바스크립트가 쿠키를 읽을 필요가 없다. 로그인은 12시간만 유지한다.
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge: 60 * 60 * 12,
+    path: "/",
+  },
     cookies: {
       getAll: () => cookieStore.getAll(),
       setAll: (cookiesToSet) => {

@@ -50,6 +50,7 @@ export async function saveManagerCauses(
   date: string,
   input: { kr: string; us: string },
   rows: readonly TableRow[],
+  editedBy?: number,
 ): Promise<SaveResult> {
   const clean: Record<CauseLine, string | null> = { kr: null, us: null };
   for (const line of ["kr", "us"] as const) {
@@ -76,6 +77,7 @@ export async function saveManagerCauses(
       has_manager_edit: true,
       confirmed_by: null,
       confirmed_at: null,
+      ...(editedBy !== undefined ? { edited_by: editedBy } : {}),
     },
     { onConflict: "report_date" },
   );

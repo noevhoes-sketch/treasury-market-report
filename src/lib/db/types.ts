@@ -102,6 +102,9 @@ export type ReportRow = {
   /** 확정한 사람의 허용 목록 번호 (이메일은 보고서에 남기지 않는다) */
   confirmed_by: number | null;
   confirmed_at: string | null;
+  /** 금리가 바뀌어 확정이 풀린 시각(확정하면 비워진다) */
+  unconfirmed_at: string | null;
+  edited_by: number | null;
   created_at: string;
   updated_at: string;
 };

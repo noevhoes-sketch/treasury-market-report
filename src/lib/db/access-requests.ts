@@ -7,12 +7,19 @@ import { createServiceClient } from "./server";
 
 /** 승인 대기 신청이 이만큼 쌓이면 새 신청을 받지 않는다. 신청 화면은 로그인 없이 열려 있어서 표가 부풀지 않게 막는다. */
 export const MAX_PENDING_REQUESTS = 50;
+/** 승인되지 않은 신청을 보관하는 날수(지난 뒤 자동으로 지운다) */
+export const PENDING_KEEP_DAYS = 14;
+export const REJECTED_KEEP_DAYS = 30;
 
 export type PendingRequest = { id: number; email: string; requested_at: string };
 
 /** 신청을 "승인 대기"로 저장한다. 접수했으면 true, 대기 신청이 너무 많으면 "full". */
 export async function createPendingRequest(email: string): Promise<true | "full"> {
   const client = createServiceClient();
+  // 오래된 신청은 지운다(개인정보를 오래 두지 않고, 가짜 신청이 자리를 오래 차지하지 못하게 한다): 대기 14일, 거절 30일.
+  const day = 24 * 3_600_000;
+  await client.from("allowed_users").delete().eq("status", "pending").lt("requested_at", new Date(Date.now() - PENDING_KEEP_DAYS * day).toISOString());
+  await client.from("allowed_users").delete().eq("status", "rejected").lt("requested_at", new Date(Date.now() - REJECTED_KEEP_DAYS * day).toISOString());
   const count = await client
     .from("allowed_users")
     .select("id", { count: "exact", head: true })

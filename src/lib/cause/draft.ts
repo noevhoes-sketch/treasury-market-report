@@ -43,7 +43,9 @@ export function summarizeTable(rows: readonly TableRow[]): string {
 }
 
 export function buildUserPrompt(rows: readonly TableRow[], articleText: string): string {
-  return `<표>\n${summarizeTable(rows)}\n</표>\n\n<article>\n${articleText}\n</article>`;
+  // 기사 본문의 < > 는 지워서, 기사 안에서 </article> 구분자를 닫고 가짜 <표>나 지시를 끼워 넣지 못하게 한다.
+  const safeArticle = articleText.replace(/[<>]/g, " ");
+  return `<표>\n${summarizeTable(rows)}\n</표>\n\n<article>\n${safeArticle}\n</article>`;
 }
 
 function parseDraft(content: unknown): RawDraft {

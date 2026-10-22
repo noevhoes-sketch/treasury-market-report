@@ -46,7 +46,7 @@ async function login(email) {
 
 try {
   for (const email of Object.values(users)) await svc.auth.admin.createUser({ email, email_confirm: true });
-  await svc.from("allowed_users").insert([{ email: users.manager, role: "manager" }, { email: users.viewer, role: "viewer" }]);
+  await svc.from("allowed_users").insert([{ email: users.manager, role: "manager", status: "approved" }, { email: users.viewer, role: "viewer", status: "approved" }]);
   const managerRow = await svc.from("allowed_users").select("id").eq("email", users.manager).single();
   await svc.from("reports").upsert({ report_date: CONFIRMED_DATE, table_status: "done", cause_kr: CONFIRMED_CAUSE, cause_status_kr: "draft", source_url_kr: "https://news.einfomax.co.kr/news/articleView.html?idxno=4440425", confirmed_by: managerRow.data.id, confirmed_at: new Date().toISOString() }, { onConflict: "report_date" });
   await svc.from("reports").upsert({ report_date: TEST_DATE, table_status: "done", cause_kr: CAUSE, cause_status_kr: "draft" }, { onConflict: "report_date" });
