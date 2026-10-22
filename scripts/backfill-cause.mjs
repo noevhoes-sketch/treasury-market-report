@@ -1,6 +1,8 @@
 // 지난 날짜들의 등락 원인 초안을 한꺼번에 채운다. (자동 실행 주소가 하는 일을 날짜 범위로 반복한다)
 // 실행: node --experimental-strip-types --no-warnings scripts/backfill-cause.mjs 2026-01-01 2026-10-22 [--delay=1500]
 //       날짜를 하나만 주거나 쉼표로 여러 개를 줄 수도 있다: ... 2026-03-10,2026-05-20
+//       --desc          최근 날짜부터 거꾸로 채운다
+//       --only-missing  보고서 행이 아직 없는 날(빈 날)만 채운다(이미 있는 날은 읽지도 않고 건너뛴다)
 // 담당자가 확정했거나 고친 보고서, 이미 초안이 있는 보고서는 건드리지 않는다. 비밀 값은 출력하지 않는다.
 import fs from "node:fs";
 import { createClient } from "@supabase/supabase-js";
@@ -25,6 +27,15 @@ if (args[0]?.includes(",") || (args.length === 1 && args[0])) {
   if (error) throw new Error(error.message);
   dates = data.map((r) => r.rate_date);
 }
+
+if (process.argv.includes("--only-missing")) {
+  const { data, error } = await client.from("reports").select("report_date").in("report_date", dates);
+  if (error) throw new Error(error.message);
+  const have = new Set(data.map((row) => row.report_date));
+  dates = dates.filter((date) => !have.has(date));
+}
+if (process.argv.includes("--desc")) dates = [...dates].sort().reverse();
+console.log(`대상 ${dates.length}일${process.argv.includes("--desc") ? " (최근 날짜순)" : ""}`);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const tally = {};
