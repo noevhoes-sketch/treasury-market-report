@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 국채시장 동향
 
-## Getting Started
+국고채 장 마감 후 일일 보고서 **「M/D(요일) 국채시장 동향」**을 자동으로 만들어 주는 웹 서비스입니다.
+재정경제부 국고실에서 국채시장 동향을 챙기는 담당자가 매일 손으로 하던 일(금리 확인 → 변동폭 계산 → 표 작성 → 등락 원인 한 줄 작성)을 줄이기 위해 만든 **교육 실습용 프로젝트**입니다.
 
-First, run the development server:
+- 기획서: [PRD.md](PRD.md)
+- 개발 계획(목표·성공 기준·작업 목록): [PLAN.md](PLAN.md)
+
+## 무엇을 해 주나요
+
+| 기능 | 설명 |
+|---|---|
+| 금리 표 자동 생성 | 국고채 3·10년·30년(금융투자협회 최종호가수익률)과 미국 10년(미국 재무부) 금리를 장 마감 후 자동으로 모아, 전년말·전월말·전일·금일 값과 전일비·전월말비·전년말비를 표로 만듭니다. |
+| 숫자 규칙 | 금리는 출처 값 그대로 소수 셋째 자리, 변동폭은 bp 소수 첫째 자리(하락은 △)로 보여 줍니다. 값을 못 받은 칸은 추정하지 않고 "미수집"으로 표시합니다. |
+| 이상값 점검 | 전일 대비 크게 어긋난 값은 "확인 중"으로 가려 두고 담당자가 확인한 뒤에 올립니다. |
+| 등락 원인 초안 | 연합인포맥스 [채권-마감] 기사를 참고해 국고채·미국 각 한 문장(80자 이내, 정부 보고서 개조식) 초안을 만듭니다. 근거 기사 링크를 함께 보여 주고, 기사에 없는 이유는 쓰지 않습니다. |
+| 담당자 확인·확정 | 담당자가 문장을 고쳐 확정해야 열람자에게 원인이 보입니다. 금리가 다시 바뀌면 확정이 풀립니다. |
+| 한글 파일 내려받기 | 확정된 보고서를 정부 공문 느낌의 A4 한 장 `.hwpx` 파일로 내려받습니다(담당자만). |
+| 금리 직접 입력 | 자동 수집이 안 된 날 담당자가 값을 직접 넣을 수 있습니다. |
+| 금리 추이 그래프 | 국고채 3·10·30년의 최근 약 7주 흐름과 전월말 기준선을 보여 줍니다. |
+| 날짜별 보관 | 보고서를 날짜별로 계속 보관하고 "일자별 동향"에서 다시 봅니다. |
+
+## 사용하는 기술
+
+- [Next.js](https://nextjs.org/) 16 (App Router) · React 19 · TypeScript · Tailwind CSS v4
+- 데이터 저장·로그인 확인: [Supabase](https://supabase.com/) (Postgres, 서버에서만 접근)
+- 등락 원인 초안: OpenAI API (JSON 형식으로만 받고, 받은 문장은 코드로 한 번 더 검사)
+- 배포·자동 실행: [Vercel](https://vercel.com/) (Cron)
+
+## 로그인 방식에 대해 (중요)
+
+교육 실습용 **임시 방식**입니다. 처음에 등록을 신청하면 담당자가 승인하고, 승인된 이메일은 이메일만 입력해도 로그인됩니다(메일 링크·메일 인증 없음).
+승인된 이메일을 아는 사람은 누구나 그 사람으로 들어올 수 있으므로, **실제 업무에 쓸 때는 사내 메신저 로그인 연동 등으로 바꿔야 합니다.** 승인되지 않은 신청은 일정 기간 뒤 자동으로 지워지고, 로그인 시도는 횟수를 제한합니다.
+
+## 실행해 보기
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+cp .env.example .env   # 값을 채웁니다 (아래 환경 변수 참고)
+npm run dev            # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| 명령 | 하는 일 |
+|---|---|
+| `npm run dev` | 개발 서버 |
+| `npm run build` | 배포용 빌드 |
+| `npm run lint` | 코드 검사 |
+| `npm run check:calc` | 영업일·변동폭·수집·보고서 계산 등 자동 확인(인터넷 없이) |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 환경 변수
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+값은 저장소에 올리지 않고 `.env`(내 컴퓨터)와 Vercel 환경 변수에만 둡니다. 이름만 적습니다.
 
-## Learn More
+| 이름 | 용도 |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase 접속 주소와 공개 키 |
+| `SUPABASE_SERVICE_ROLE_KEY` | 서버 전용 키(표 읽고 쓰기) |
+| `OPENAI_API_KEY` | 등락 원인 초안 작성 |
+| `CRON_SECRET` | 자동 실행 주소(`/api/cron/*`) 잠금 |
 
-To learn more about Next.js, take a look at the following resources:
+데이터베이스 표와 규칙은 `supabase/migrations/`의 SQL 파일을 번호 순서로 적용해 만듭니다.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 폴더 구조
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/app/            화면(보고서·일자별 동향·담당자 확인·로그인)과 API
+src/lib/calc/       영업일 계산, 변동폭 계산·표시 규칙
+src/lib/rates/      금리 수집(금투협·미국 재무부)·저장·이상값 점검·직접 입력
+src/lib/cause/      등락 원인 초안(기사 찾기·AI 요청·문장 검사)
+src/lib/reports/    보고서 읽기·확정·금리 추이
+src/lib/hwpx/       한글 파일(.hwpx) 만들기
+src/lib/auth/       로그인 확인·권한·시도 제한
+supabase/migrations/  데이터베이스 표와 규칙(SQL)
+scripts/            계산·화면·로그인 자동 확인과 수집 스크립트
+```
 
-## Deploy on Vercel
+## 알아둘 점
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **연합인포맥스 기사:** 기사 끝에 무단 재배포·AI 활용 금지 문구가 있습니다. 이 프로젝트는 교육 실습용 테스트이며, 실제 업무에 쓰기 전에는 이용 약관과 계약을 확인해야 합니다.
+- **금융투자협회 조회:** 공식 API가 아니라 채권정보센터 화면이 쓰는 조회 서비스를 이용하므로 바뀌거나 막힐 수 있습니다. 그런 날은 금리 직접 입력으로 대신합니다.
+- 등락 원인 문장은 AI가 만든 **초안**입니다. 담당자가 읽고 확정하기 전에는 확정으로 표시하지 않습니다.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 만든 방법
+
+기획(PRD) → 개발 계획(PLAN) → 설계 → 구현 → 점검의 순서로, 작업 단위마다 브랜치를 만들어 구현하고 자동 확인(lint·build·계산 검사)을 통과한 뒤 커밋했습니다.
