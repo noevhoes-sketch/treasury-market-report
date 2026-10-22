@@ -35,6 +35,8 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
   const confirmed = report?.confirmed_at != null;
   const blocker = whyCannotConfirm(report);
   const stale = report?.cause_status_kr === "stale" || report?.cause_status_us === "stale";
+  // 금리가 바뀌어 확정이 풀린 적이 있으면(원인 줄이 '근거 기사 없음'이어도) 알려 준다.
+  const unconfirmedByChange = !confirmed && report?.unconfirmed_at != null;
 
   // 확정된 보고서의 줄은 "확정"으로, 아니면 줄별 상태(초안·숫자 바뀜·기사 대기 중 등)를 보여준다.
   const label = (status: keyof typeof CAUSE_STATUS_LABELS | undefined) =>
@@ -57,9 +59,9 @@ async function ReviewDate({ params }: { params: Promise<{ date: string }> }) {
           </p>
         </div>
 
-        {stale ? (
+        {stale || unconfirmedByChange ? (
           <p role="status" className="rounded-2xl bg-[#fff4e5] px-5 py-4 text-sm text-[#8a4b00]">
-            금리 숫자가 바뀌어 확정이 풀렸어요. 문장을 다시 확인하고 저장·확정해 주세요.
+            금리 숫자가 바뀌어 확정이 풀렸어요{report?.unconfirmed_at ? ` (${kstDateTime(report.unconfirmed_at)})` : ""}. 표와 문장을 다시 확인하고 저장·확정해 주세요.
           </p>
         ) : null}
         {confirmed ? (

@@ -182,12 +182,12 @@ await check("AI 요청: 키가 없거나 답이 JSON이 아니면 오류", async
 });
 
 // ── 저장·확정 ──
-function fakeDb(initialReport) {
+function fakeDb(initialReport, heldRows = []) {
   const state = { report: initialReport, upserts: [], updates: [], tableUpserts: [] };
   const client = {
     from() {
       return {
-        select() { return { eq() { return { maybeSingle: async () => ({ data: state.report, error: null }), in: async () => ({ data: [{ instrument: "kr3" }, { instrument: "kr10" }, { instrument: "kr30" }], error: null }) }; } }; },
+        select() { return { eq() { return { maybeSingle: async () => ({ data: state.report, error: null }), in: async () => ({ data: [{ instrument: "kr3" }, { instrument: "kr10" }, { instrument: "kr30" }], error: null }), gte: () => ({ lte: async () => ({ data: heldRows, error: null }) }) }; } }; },
         upsert(values) { if (Object.keys(values).join() === "report_date,table_status") { state.tableUpserts.push(values); state.report = { ...(state.report ?? {}), ...values }; return Promise.resolve({ error: null }); } state.upserts.push(values); state.report = { ...(state.report ?? {}), ...values }; return Promise.resolve({ error: null }); },
         update(values) { state.updates.push(values); state.report = { ...state.report, ...values }; return { eq() { return { select: async () => ({ data: [{ report_date: "x" }], error: null }) }; } }; },
       };
@@ -233,6 +233,14 @@ await check("확정: 조건을 채우면 확정한 사람 번호와 시각을 �
   const refused = await confirmReport(bad.client, "2026-10-21", 9);
   assert.equal(refused.ok, false);
   assert.equal(bad.state.updates.length, 0);
+  assert.equal(good.state.updates[0].unconfirmed_at, null); // 확정하면 "확정이 풀린 시각"을 비운다
+});
+await check("확정: 확인 중(보류) 값이 남아 있으면 거부", async () => {
+  const held = fakeDb(READY, [{ id: 1 }]);
+  const refused = await confirmReport(held.client, "2026-10-21", 9);
+  assert.equal(refused.ok, false);
+  assert.match(refused.reason, /확인 중/);
+  assert.equal(held.state.updates.length, 0);
 });
 await check("AI 초안 저장: 문장 없는 줄은 '근거 기사 없음', 확정 정보는 건드리지 않는다", async () => {
   const { client, state } = fakeDb(null);

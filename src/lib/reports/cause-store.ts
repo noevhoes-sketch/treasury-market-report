@@ -6,6 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { CauseStatus, ReportRow } from "../db/types.ts";
 import { validateCause, type CauseLine } from "../cause/validate.ts";
 import type { TableRow } from "../calc/rates-format.ts";
+import { minusDays } from "./rates-window.ts";
 import { syncTableStatus } from "./table-status.ts";
 
 /** AI가 만든 한 줄의 결과: 초안이 통과했거나, 근거가 없어 비웠다. */
@@ -109,6 +110,17 @@ export async function confirmReport(
   userId: number,
 ): Promise<SaveResult> {
   await syncTableStatus(client, date);
+  // "확인 중"으로 가려진 값(보류)이 남아 있으면 확정할 수 없다. 보류를 풀면 표 숫자가 바뀌므로, 먼저 담당자 확인 화면에서 처리해야 한다.
+  const held = await client
+    .from("rates")
+    .select("id")
+    .eq("held", true)
+    .gte("rate_date", minusDays(date, 7))
+    .lte("rate_date", date);
+  if (held.error) throw new Error(`보류 값을 읽지 못했습니다: ${held.error.message}`);
+  if ((held.data ?? []).length > 0) {
+    return { ok: false, reason: "표에 '확인 중'으로 가려진 값이 있어요. 담당자 확인 화면에서 먼저 처리해 주세요." };
+  }
   const { data, error } = await client
     .from("reports")
     .select("table_status, cause_status_kr, cause_status_us, cause_kr, cause_us")
@@ -123,7 +135,7 @@ export async function confirmReport(
 
   const update = await client
     .from("reports")
-    .update({ confirmed_by: userId, confirmed_at: new Date().toISOString() })
+    .update({ confirmed_by: userId, confirmed_at: new Date().toISOString(), unconfirmed_at: null })
     .eq("report_date", date)
     .select("report_date");
   if (update.error) throw new Error(`확정하지 못했습니다: ${update.error.message}`);
