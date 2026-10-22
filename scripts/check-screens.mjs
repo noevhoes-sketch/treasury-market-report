@@ -12,9 +12,9 @@ const env = Object.fromEntries(
 );
 const svc = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 const BASE = "http://localhost:3000";
-const TEST_DATE = "2026-10-20";
+const TEST_DATE = "2031-03-05"; // 진짜 보고서 날짜와 겹치면 시험이 끝날 때 지워 버리므로 먼 미래 날짜를 쓴다
 const CAUSE = "시험용 원인 문장 ABC";
-const CONFIRMED_DATE = "2026-10-19";
+const CONFIRMED_DATE = "2031-03-04";
 const CONFIRMED_CAUSE = "시험용 확정 문장 XYZ";
 
 class Jar {
