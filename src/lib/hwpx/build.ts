@@ -56,23 +56,23 @@ function cell(text: string, col: number, row: number): string {
   return (
     `<hp:tc name="" header="${row === 0 ? 1 : 0}" hasMargin="0" protect="0" editable="0" dirty="0" borderFillIDRef="3">` +
     `<hp:subList id="" textDirection="HORIZONTAL" lineWrap="BREAK" vertAlign="CENTER" linkListIDRef="0" linkListNextIDRef="0" textWidth="0" textHeight="0" hasTextRef="0" hasNumRef="0">` +
-    paragraph(text, row === 0 || col === 0 ? 7 : 0, 20, width - 1020) +
+    paragraph(text, row === 0 || col === 0 || col === 4 || col === 5 ? 7 : 0, 20, width - 1020) +
     `</hp:subList><hp:cellAddr colAddr="${col}" rowAddr="${row}"/><hp:cellSpan colSpan="1" rowSpan="1"/>` +
     `<hp:cellSz width="${width}" height="${ROW_HEIGHT}"/><hp:cellMargin left="510" right="510" top="141" bottom="141"/></hp:tc>`
   );
 }
 
 function table(rows: readonly TableRow[]): string {
-  const header = ["구분", "전년말", "전월말", "전일", "금일", "전년말비", "전월말비", "전일비"];
+  const header = ["구분", "전년말", "전월말", "전일", "금일", "전일비", "전월말비", "전년말비"];
   const body = rows.map((row) => [
     LABELS[row.instrument],
     row.previousYearEnd.text,
     row.previousMonthEnd.text,
     row.previousDay.text,
     row.today.text,
-    row.changeFromYearEnd.text,
-    row.changeFromMonthEnd.text,
     row.changeFromPreviousDay.text,
+    row.changeFromMonthEnd.text,
+    row.changeFromYearEnd.text,
   ]);
   const all = [header, ...body];
   const trs = all.map((line, r) => `<hp:tr>${line.map((text, c) => cell(text, c, r)).join("")}</hp:tr>`).join("");

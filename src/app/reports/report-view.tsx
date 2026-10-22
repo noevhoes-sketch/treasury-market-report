@@ -29,10 +29,12 @@ function cellClass(cell: Cell): string {
   return "";
 }
 
-function DataCell({ cell }: { cell: Cell }) {
+/** 금일·전일비 칸은 눈에 잘 띄게 연한 파랑 바탕에 굵고 크게 보인다. 보류·미수집 칸은 자기 색을 그대로 둔다. */
+function DataCell({ cell, strong = false }: { cell: Cell; strong?: boolean }) {
   const title = cell.source && cell.asOf ? `출처: ${cell.source} · 기준일: ${cell.asOf}` : undefined;
+  const emphasis = strong && cellClass(cell) === "" ? "bg-panel text-base font-bold text-brand" : "";
   return (
-    <td title={title} className={`px-4 py-3 text-right tabular-nums ${cellClass(cell)}`}>
+    <td title={title} className={`px-4 py-3 text-right tabular-nums ${cellClass(cell)} ${emphasis}`}>
       {cell.text}
     </td>
   );
@@ -158,8 +160,11 @@ export function ReportView(props: Props) {
                 <thead className="bg-surface">
                   <tr>
                     <th className="px-4 py-3 text-left font-bold">구분</th>
-                    {["전년말", "전월말", "전일", "금일", "전년말비", "전월말비", "전일비"].map((name) => (
-                      <th key={name} className="px-4 py-3 text-right font-bold">
+                    {["전년말", "전월말", "전일", "금일", "전일비", "전월말비", "전년말비"].map((name) => (
+                      <th
+                        key={name}
+                        className={`px-4 py-3 text-right font-bold ${name === "금일" || name === "전일비" ? "bg-brand text-white" : ""}`}
+                      >
                         {name}
                       </th>
                     ))}
@@ -172,10 +177,10 @@ export function ReportView(props: Props) {
                       <DataCell cell={row.previousYearEnd} />
                       <DataCell cell={row.previousMonthEnd} />
                       <DataCell cell={row.previousDay} />
-                      <DataCell cell={row.today} />
-                      <DataCell cell={row.changeFromYearEnd} />
+                      <DataCell cell={row.today} strong />
+                      <DataCell cell={row.changeFromPreviousDay} strong />
                       <DataCell cell={row.changeFromMonthEnd} />
-                      <DataCell cell={row.changeFromPreviousDay} />
+                      <DataCell cell={row.changeFromYearEnd} />
                     </tr>
                   ))}
                 </tbody>
