@@ -108,3 +108,10 @@ export function toHolidaySet(
     rows.filter((row) => row.market === market).map((row) => row.holiday_date),
   );
 }
+
+/** 다음 영업일. 날짜 이동 버튼에서 쓴다. */
+export function nextBusinessDay(date: DateString, holidays: HolidaySet): DateString {
+  let cursor = addDays(date, 1);
+  while (!isBusinessDay(cursor, holidays)) cursor = addDays(cursor, 1);
+  return cursor;
+}

@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "check:screens": "node --experimental-strip-types --no-warnings scripts/check-screens.mjs",
+    "collect:today": "node --experimental-strip-types --no-warnings scripts/collect-today.mjs",
     "seed:kr": "node --experimental-strip-types --no-warnings scripts/seed-kr-rates.mjs",
     "seed:us": "node --experimental-strip-types --no-warnings scripts/seed-us-rates.mjs",
     "check:login": "node --experimental-strip-types --no-warnings scripts/check-login-flow.mjs",
-    "check:calc": "node --experimental-strip-types --no-warnings scripts/check-business-days.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-format.mjs && node --experimental-strip-types --no-warnings scripts/check-access.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-collect.mjs && node --experimental-strip-types --no-warnings scripts/check-kofia.mjs"
+    "check:calc": "node --experimental-strip-types --no-warnings scripts/check-business-days.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-format.mjs && node --experimental-strip-types --no-warnings scripts/check-access.mjs && node --experimental-strip-types --no-warnings scripts/check-rates-collect.mjs && node --experimental-strip-types --no-warnings scripts/check-kofia.mjs && node --experimental-strip-types --no-warnings scripts/check-report.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
